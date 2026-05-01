@@ -3,10 +3,12 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	"rastro/backend/models"
 	"rastro/backend/services"
@@ -41,25 +43,38 @@ func (h *LocationHandler) Ingest(c *gin.Context) {
 
 	var req ingestLocationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Warn().Err(err).Str("device_id", deviceID.String()).Msg("ingest: bind failed")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	lat, err := strconv.ParseFloat(req.Latitude, 64)
+	log.Debug().
+		Str("device_id", deviceID.String()).
+		Str("latitude", req.Latitude).
+		Str("longitude", req.Longitude).
+		Str("altitude", req.Altitude).
+		Str("battery_level", req.BatteryLevel).
+		Str("timestamp", req.Timestamp).
+		Msg("ingest: received")
+
+	lat, err := strconv.ParseFloat(normalizeDecimal(req.Latitude), 64)
 	if err != nil || lat < -90 || lat > 90 {
+		log.Warn().Str("value", req.Latitude).Msg("ingest: invalid latitude")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "latitude must be a number between -90 and 90"})
 		return
 	}
-	lng, err := strconv.ParseFloat(req.Longitude, 64)
+	lng, err := strconv.ParseFloat(normalizeDecimal(req.Longitude), 64)
 	if err != nil || lng < -180 || lng > 180 {
+		log.Warn().Str("value", req.Longitude).Msg("ingest: invalid longitude")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "longitude must be a number between -180 and 180"})
 		return
 	}
 
 	var altitude *float64
 	if req.Altitude != "" {
-		v, err := strconv.ParseFloat(req.Altitude, 64)
+		v, err := strconv.ParseFloat(normalizeDecimal(req.Altitude), 64)
 		if err != nil {
+			log.Warn().Str("value", req.Altitude).Msg("ingest: invalid altitude")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "altitude must be a number"})
 			return
 		}
@@ -68,8 +83,10 @@ func (h *LocationHandler) Ingest(c *gin.Context) {
 
 	var batteryLevel *int
 	if req.BatteryLevel != "" {
-		v, err := strconv.Atoi(req.BatteryLevel)
+		f, err := strconv.ParseFloat(normalizeDecimal(req.BatteryLevel), 64)
+		v := int(f)
 		if err != nil || v < 0 || v > 100 {
+			log.Warn().Str("value", req.BatteryLevel).Msg("ingest: invalid battery_level")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "battery_level must be an integer between 0 and 100"})
 			return
 		}
@@ -78,6 +95,7 @@ func (h *LocationHandler) Ingest(c *gin.Context) {
 
 	ts, err := time.Parse(time.RFC3339, req.Timestamp)
 	if err != nil {
+		log.Warn().Str("value", req.Timestamp).Msg("ingest: invalid timestamp")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "timestamp must be RFC3339 (ISO8601)"})
 		return
 	}
@@ -235,4 +253,9 @@ func (h *LocationHandler) resolveAccess(c *gin.Context) (uuid.UUID, uuid.UUID, b
 	}
 
 	return userID, deviceID, true
+}
+
+// normalizeDecimal replaces comma decimal separators with periods (iOS locale issue).
+func normalizeDecimal(s string) string {
+	return strings.ReplaceAll(s, ",", ".")
 }
