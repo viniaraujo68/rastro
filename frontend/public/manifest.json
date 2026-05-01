@@ -1,0 +1,18 @@
+{
+  "name": "Rastro",
+  "short_name": "Rastro",
+  "description": "Rastreamento de localização pessoal",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1117",
+  "theme_color": "#070e1c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

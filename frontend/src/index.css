@@ -1,0 +1,155 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+:root {
+  --bg:         #07101f;
+  --surface:    #0d1a2e;
+  --surface2:   #102038;
+  --border:     #1a2d47;
+  --border2:    #213550;
+  --text:       #dde4f0;
+  --text2:      #7a8faa;
+  --text3:      #3e5270;
+  --accent:     #3b7ff5;
+  --accent-dim: rgba(59,127,245,0.12);
+  --green:      #22c55e;
+  --green-dim:  rgba(34,197,94,0.12);
+  --red:        #f87171;
+  --red-dim:    rgba(248,113,113,0.1);
+  --yellow:     #fbbf24;
+  --yellow-dim: rgba(251,191,36,0.08);
+  --nav-h:      64px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--border2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 2px;
+}
+
+/* ── Keyframes ─────────────────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.4); opacity: 0.7; }
+  100% { transform: scale(2);   opacity: 0;   }
+}
+
+/* ── Layout helpers ────────────────────────────────────── */
+.tap-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Leaflet stacking context ──────────────────────────────── */
+/* Without z-index, .leaflet-container has no stacking context,
+   so internal Leaflet z-indices (tiles=200, controls=1000) bleed
+   into the page and cover floating overlays. z-index:0 isolates them. */
+.leaflet-container {
+  z-index: 0;
+  background: var(--bg);
+}
+
+/* ── Map attribution ───────────────────────────────────── */
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  background: rgba(0,0,0,0.55) !important;
+  color: var(--text3) !important;
+  backdrop-filter: blur(4px);
+  padding: 2px 6px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--text3) !important;
+}
+
+/* ── Map zoom controls ─────────────────────────────────── */
+.leaflet-control-zoom a {
+  background: var(--surface) !important;
+  color: var(--text2) !important;
+  border-color: var(--border) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--surface2) !important;
+  color: var(--text) !important;
+}
+
+/* ── Device marker pulse ───────────────────────────────── */
+.device-marker {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-marker-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 1;
+}
+
+.device-marker-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
