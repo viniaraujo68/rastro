@@ -22,9 +22,7 @@ type Location struct {
 	Latitude     float64   `json:"latitude"`
 	Longitude    float64   `json:"longitude"`
 	Address      *string   `json:"address,omitempty"`
-	Accuracy     *float64  `json:"accuracy,omitempty"`
 	Altitude     *float64  `json:"altitude,omitempty"`
-	Speed        *float64  `json:"speed,omitempty"`
 	BatteryLevel *int      `json:"battery_level,omitempty"`
 	Timestamp    time.Time `json:"timestamp"`
 	CreatedAt    time.Time `json:"created_at"`

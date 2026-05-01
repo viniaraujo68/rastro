@@ -24,14 +24,12 @@ func NewLocationHandler(locationSvc *services.LocationService, deviceSvc *servic
 // --- POST /api/v1/location ---
 
 type ingestLocationRequest struct {
-	Latitude     float64  `json:"latitude"      binding:"required,min=-90,max=90"`
-	Longitude    float64  `json:"longitude"     binding:"required,min=-180,max=180"`
-	Address      *string  `json:"address"`
-	Accuracy     *float64 `json:"accuracy"      binding:"omitempty,min=0"`
-	Altitude     *float64 `json:"altitude"`
-	Speed        *float64 `json:"speed"         binding:"omitempty,min=0"`
-	BatteryLevel *int     `json:"battery_level" binding:"omitempty,min=0,max=100"`
-	Timestamp    string   `json:"timestamp"     binding:"required"`
+	Latitude     string  `json:"latitude"      binding:"required"`
+	Longitude    string  `json:"longitude"     binding:"required"`
+	Address      *string `json:"address"`
+	Altitude     string  `json:"altitude"`
+	BatteryLevel string  `json:"battery_level"`
+	Timestamp    string  `json:"timestamp"     binding:"required"`
 }
 
 func (h *LocationHandler) Ingest(c *gin.Context) {
@@ -47,6 +45,37 @@ func (h *LocationHandler) Ingest(c *gin.Context) {
 		return
 	}
 
+	lat, err := strconv.ParseFloat(req.Latitude, 64)
+	if err != nil || lat < -90 || lat > 90 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "latitude must be a number between -90 and 90"})
+		return
+	}
+	lng, err := strconv.ParseFloat(req.Longitude, 64)
+	if err != nil || lng < -180 || lng > 180 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "longitude must be a number between -180 and 180"})
+		return
+	}
+
+	var altitude *float64
+	if req.Altitude != "" {
+		v, err := strconv.ParseFloat(req.Altitude, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "altitude must be a number"})
+			return
+		}
+		altitude = &v
+	}
+
+	var batteryLevel *int
+	if req.BatteryLevel != "" {
+		v, err := strconv.Atoi(req.BatteryLevel)
+		if err != nil || v < 0 || v > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "battery_level must be an integer between 0 and 100"})
+			return
+		}
+		batteryLevel = &v
+	}
+
 	ts, err := time.Parse(time.RFC3339, req.Timestamp)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "timestamp must be RFC3339 (ISO8601)"})
@@ -55,13 +84,11 @@ func (h *LocationHandler) Ingest(c *gin.Context) {
 
 	loc := &models.Location{
 		DeviceID:     deviceID,
-		Latitude:     req.Latitude,
-		Longitude:    req.Longitude,
+		Latitude:     lat,
+		Longitude:    lng,
 		Address:      req.Address,
-		Accuracy:     req.Accuracy,
-		Altitude:     req.Altitude,
-		Speed:        req.Speed,
-		BatteryLevel: req.BatteryLevel,
+		Altitude:     altitude,
+		BatteryLevel: batteryLevel,
 		Timestamp:    ts,
 	}
 

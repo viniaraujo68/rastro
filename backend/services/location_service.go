@@ -24,9 +24,9 @@ func NewLocationService(db *pgxpool.Pool) *LocationService {
 func (s *LocationService) Insert(ctx context.Context, deviceID uuid.UUID, loc *models.Location) (int64, error) {
 	const q = `
 		INSERT INTO locations
-			(device_id, latitude, longitude, address, accuracy, altitude, speed, battery_level, timestamp)
+			(device_id, latitude, longitude, address, altitude, battery_level, timestamp)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id`
 
 	var id int64
@@ -35,9 +35,7 @@ func (s *LocationService) Insert(ctx context.Context, deviceID uuid.UUID, loc *m
 		loc.Latitude,
 		loc.Longitude,
 		loc.Address,
-		loc.Accuracy,
 		loc.Altitude,
-		loc.Speed,
 		loc.BatteryLevel,
 		loc.Timestamp,
 	).Scan(&id)
@@ -49,7 +47,7 @@ func (s *LocationService) Insert(ctx context.Context, deviceID uuid.UUID, loc *m
 
 func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to time.Time, limit int) ([]models.Location, error) {
 	const q = `
-		SELECT id, device_id, latitude, longitude, address, accuracy, altitude, speed, battery_level, timestamp, created_at
+		SELECT id, device_id, latitude, longitude, address, altitude, battery_level, timestamp, created_at
 		FROM locations
 		WHERE device_id = $1
 		  AND timestamp >= $2
@@ -68,7 +66,7 @@ func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to
 		var l models.Location
 		if err := rows.Scan(
 			&l.ID, &l.DeviceID, &l.Latitude, &l.Longitude,
-			&l.Address, &l.Accuracy, &l.Altitude, &l.Speed,
+			&l.Address, &l.Altitude,
 			&l.BatteryLevel, &l.Timestamp, &l.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan location: %w", err)
@@ -80,7 +78,7 @@ func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to
 
 func (s *LocationService) Latest(ctx context.Context, deviceID uuid.UUID) (*models.Location, error) {
 	const q = `
-		SELECT id, device_id, latitude, longitude, address, accuracy, altitude, speed, battery_level, timestamp, created_at
+		SELECT id, device_id, latitude, longitude, address, altitude, battery_level, timestamp, created_at
 		FROM locations
 		WHERE device_id = $1
 		ORDER BY timestamp DESC
@@ -89,7 +87,7 @@ func (s *LocationService) Latest(ctx context.Context, deviceID uuid.UUID) (*mode
 	var l models.Location
 	err := s.db.QueryRow(ctx, q, deviceID).Scan(
 		&l.ID, &l.DeviceID, &l.Latitude, &l.Longitude,
-		&l.Address, &l.Accuracy, &l.Altitude, &l.Speed,
+		&l.Address, &l.Altitude,
 		&l.BatteryLevel, &l.Timestamp, &l.CreatedAt,
 	)
 	if err != nil {

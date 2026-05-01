@@ -1,0 +1,3 @@
+ALTER TABLE locations
+    DROP COLUMN IF EXISTS accuracy,
+    DROP COLUMN IF EXISTS speed;
