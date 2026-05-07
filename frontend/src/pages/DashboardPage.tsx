@@ -4,11 +4,8 @@ import { MapView } from '../components/Map/MapView'
 import { DeviceMarker } from '../components/Map/DeviceMarker'
 import { TrailPath } from '../components/Map/TrailPath'
 import { HeatmapLayer } from '../components/Map/HeatmapLayer'
-import { buildRange } from '../components/Controls/DateRangePicker'
-import type { DateRange } from '../components/Controls/DateRangePicker'
 import { useDevices } from '../hooks/useDevices'
 import { useLatestLocation, useLocationHistory } from '../hooks/useLocations'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { Ico } from '../components/icons/Ico'
 import type { Location, ViewMode } from '../types'
 
@@ -38,14 +35,6 @@ function totalDistanceKm(locs: Location[]): number {
   return sum
 }
 
-function formatDuration(from: string, to: string): string {
-  const ms = new Date(to).getTime() - new Date(from).getTime()
-  const h = Math.floor(ms / 3_600_000)
-  const m = Math.floor((ms % 3_600_000) / 60_000)
-  if (h > 0) return `${h}h ${m}m`
-  return `${m}m`
-}
-
 // Local FloatingPill component
 function FloatingPill({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
@@ -66,16 +55,50 @@ const pillStyle: CSSProperties = {
   pointerEvents: 'auto',
 }
 
-type DatePreset = 'today' | '24h' | '7d' | '30d'
+type DatePreset = 'today' | '24h' | '7d' | '30d' | 'custom'
 const DATE_PRESETS: { value: DatePreset; label: string }[] = [
   { value: 'today', label: 'Hoje' },
   { value: '24h', label: '24h' },
   { value: '7d', label: '7d' },
   { value: '30d', label: '30d' },
+  { value: 'custom', label: 'Personalizado' },
 ]
 
+interface DateRange {
+  from: string
+  to: string
+}
+
+function buildRange(preset: Exclude<DatePreset, 'custom'>): DateRange {
+  const now = new Date()
+  const to = now.toISOString()
+  switch (preset) {
+    case 'today': {
+      const from = new Date(now)
+      from.setHours(0, 0, 0, 0)
+      return { from: from.toISOString(), to }
+    }
+    case '24h':
+      return { from: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), to }
+    case '7d':
+      return { from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), to }
+    case '30d':
+      return { from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(), to }
+  }
+}
+
+function isoToLocalInput(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function localInputToIso(value: string): string {
+  return value ? new Date(value).toISOString() : ''
+}
+
 export default function DashboardPage() {
-  const isMobile = useIsMobile()
   const { devices, loading: devicesLoading } = useDevices()
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('realtime')
@@ -104,7 +127,9 @@ export default function DashboardPage() {
 
   function handlePresetChange(preset: DatePreset) {
     setDatePreset(preset)
-    setDateRange(buildRange(preset))
+    if (preset !== 'custom') {
+      setDateRange(buildRange(preset))
+    }
   }
 
   const { location: latestLocation, loading: latestLoading } = useLatestLocation(
@@ -142,14 +167,7 @@ export default function DashboardPage() {
     setFocusedLocation(loc)
   }
 
-  // Trail stats
   const trailDistance = totalDistanceKm(trailLocations)
-  const trailDuration = trailLocations.length >= 2
-    ? formatDuration(trailLocations[0].timestamp, trailLocations[trailLocations.length - 1].timestamp)
-    : '--'
-  const avgBattery = trailLocations.length > 0
-    ? Math.round(trailLocations.filter(l => l.battery_level != null).reduce((a, l) => a + (l.battery_level ?? 0), 0) / Math.max(1, trailLocations.filter(l => l.battery_level != null).length))
-    : null
 
   const VIEW_MODES: { value: ViewMode; label: string }[] = [
     { value: 'realtime', label: 'Ao vivo' },
@@ -252,7 +270,7 @@ export default function DashboardPage() {
       {/* Date presets (trail / heatmap) */}
       {viewMode !== 'realtime' && (
         <div style={styles.presetsRow}>
-          <FloatingPill style={{ padding: '4px 5px', gap: 2 }}>
+          <FloatingPill style={{ padding: '4px 5px', gap: 2, flexWrap: 'wrap' }}>
             {DATE_PRESETS.map(p => (
               <button
                 key={p.value}
@@ -274,6 +292,29 @@ export default function DashboardPage() {
               </button>
             ))}
           </FloatingPill>
+
+          {datePreset === 'custom' && (
+            <div style={styles.customRangePanel}>
+              <label style={styles.customRangeLabel}>
+                <span style={styles.customRangeLabelText}>De</span>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(dateRange.from)}
+                  onChange={e => setDateRange({ ...dateRange, from: localInputToIso(e.target.value) })}
+                  style={styles.customRangeInput}
+                />
+              </label>
+              <label style={styles.customRangeLabel}>
+                <span style={styles.customRangeLabelText}>Até</span>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(dateRange.to)}
+                  onChange={e => setDateRange({ ...dateRange, to: localInputToIso(e.target.value) })}
+                  style={styles.customRangeInput}
+                />
+              </label>
+            </div>
+          )}
         </div>
       )}
 
@@ -325,22 +366,16 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Trail stats (trail mode) */}
-      {viewMode === 'trail' && !trailLoading && trailLocations.length > 0 && (
-        <div style={styles.trailStatsWrap}>
-          <div style={{ ...styles.trailStatsCard, gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)' }}>
-            {[
-              { label: 'Distância', value: `${trailDistance.toFixed(1)} km` },
-              { label: 'Duração', value: trailDuration },
-              { label: 'Pontos', value: String(trailLocations.length) },
-              { label: 'Bateria', value: avgBattery != null ? `${avgBattery}%` : '--' },
-            ].map(stat => (
-              <div key={stat.label} style={styles.statBox}>
-                <span style={styles.statValue}>{stat.value}</span>
-                <span style={styles.statLabel}>{stat.label}</span>
-              </div>
-            ))}
-          </div>
+      {/* Trail info pill */}
+      {viewMode === 'trail' && !trailLoading && (
+        <div style={styles.statusPillWrap}>
+          <FloatingPill style={{ padding: '6px 14px' }}>
+            <span style={styles.statusText}>
+              {trailLocations.length > 0
+                ? `${trailDistance.toFixed(1)} km no período`
+                : 'Nenhum ponto no período'}
+            </span>
+          </FloatingPill>
         </div>
       )}
 
@@ -510,41 +545,40 @@ const styles: Record<string, CSSProperties> = {
     background: 'var(--border2)',
     flexShrink: 0,
   },
-  trailStatsWrap: {
-    position: 'absolute',
-    bottom: 16,
-    left: 12,
-    right: 12,
-    zIndex: 400,
-    pointerEvents: 'none',
-  },
-  trailStatsCard: {
-    background: 'rgba(13,26,46,0.95)',
+  customRangePanel: {
+    marginTop: 8,
+    background: 'rgba(13,26,46,0.92)',
     backdropFilter: 'blur(12px)',
-    borderRadius: 16,
-    padding: '14px 16px',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: 8,
+    border: '1px solid var(--border2)',
+    borderRadius: 12,
+    padding: '10px 12px',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+    animation: 'fadeIn 0.18s ease',
   },
-  statBox: {
-    background: 'var(--surface2)',
-    borderRadius: 8,
-    padding: '8px 10px',
+  customRangeLabel: {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    alignItems: 'center',
   },
-  statValue: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: 'var(--text)',
-  },
-  statLabel: {
+  customRangeLabelText: {
     fontSize: 10,
     color: 'var(--text3)',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.04em',
+    fontWeight: 600,
+  },
+  customRangeInput: {
+    padding: '6px 8px',
+    border: '1px solid var(--border2)',
+    borderRadius: 6,
+    fontSize: 12,
+    background: 'var(--surface2)',
+    color: 'var(--text)',
+    outline: 'none',
+    colorScheme: 'dark' as const,
+    fontFamily: 'inherit',
   },
 }

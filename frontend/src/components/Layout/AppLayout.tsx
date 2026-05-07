@@ -47,7 +47,7 @@ const styles: Record<string, React.CSSProperties> = {
   mobileRoot: {
     display: 'flex',
     flexDirection: 'column',
-    height: '100vh',
+    height: '100dvh',
     overflow: 'hidden',
     background: 'var(--bg)',
   },
