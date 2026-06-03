@@ -28,13 +28,15 @@ services:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
     restart: unless-stopped
-    ports:
-      - "80:80"
+    # Port 80 is no longer published directly — the shared edge proxy fronts it.
     depends_on:
       backend:
         condition: service_healthy
     networks:
-      - rastro-net
+      rastro-net: {}
+      web:
+        aliases:
+          - rastro-frontend
 
 networks:
   rastro-net:
@@ -43,3 +45,5 @@ networks:
     ipam:
       config:
         - subnet: "fd00:0:0:1::/64"
+  web:
+    external: true
