@@ -10,7 +10,6 @@ type Config struct {
 	Port              string
 	DatabaseURL       string
 	SupabaseURL       string
-	SupabaseServiceKey string
 	SupabaseJWTSecret string
 	CORSOrigins       []string
 }
@@ -24,11 +23,6 @@ func Load() (*Config, error) {
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	if supabaseURL == "" {
 		return nil, fmt.Errorf("SUPABASE_URL is required")
-	}
-
-	supabaseServiceKey := os.Getenv("SUPABASE_SERVICE_KEY")
-	if supabaseServiceKey == "" {
-		return nil, fmt.Errorf("SUPABASE_SERVICE_KEY is required")
 	}
 
 	supabaseJWTSecret := os.Getenv("SUPABASE_JWT_SECRET")
@@ -58,7 +52,6 @@ func Load() (*Config, error) {
 		Port:              port,
 		DatabaseURL:       databaseURL,
 		SupabaseURL:       supabaseURL,
-		SupabaseServiceKey: supabaseServiceKey,
 		SupabaseJWTSecret: supabaseJWTSecret,
 		CORSOrigins:       corsOrigins,
 	}, nil

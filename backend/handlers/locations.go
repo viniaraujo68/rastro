@@ -127,11 +127,10 @@ func (h *LocationHandler) Ingest(c *gin.Context) {
 // --- GET /api/v1/locations ---
 
 func (h *LocationHandler) List(c *gin.Context) {
-	userID, deviceID, ok := h.resolveAccess(c)
+	deviceID, ok := h.resolveAccess(c)
 	if !ok {
 		return
 	}
-	_ = userID
 
 	now := time.Now().UTC()
 	from := now.Add(-24 * time.Hour)
@@ -163,13 +162,22 @@ func (h *LocationHandler) List(c *gin.Context) {
 		limit = n
 	}
 
+	if to.Before(from) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "to must be greater than or equal to from"})
+		return
+	}
+
 	device, err := h.deviceSvc.Get(c.Request.Context(), deviceID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch device"})
 		return
 	}
+	if device == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "device not found"})
+		return
+	}
 
-	locations, err := h.locationSvc.List(c.Request.Context(), deviceID, from, to, limit)
+	locations, truncated, err := h.locationSvc.List(c.Request.Context(), deviceID, from, to, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch locations"})
 		return
@@ -182,9 +190,10 @@ func (h *LocationHandler) List(c *gin.Context) {
 		},
 		"locations": locations,
 		"meta": gin.H{
-			"count": len(locations),
-			"from":  from,
-			"to":    to,
+			"count":     len(locations),
+			"from":      from,
+			"to":        to,
+			"truncated": truncated,
 		},
 	})
 }
@@ -192,15 +201,18 @@ func (h *LocationHandler) List(c *gin.Context) {
 // --- GET /api/v1/locations/latest ---
 
 func (h *LocationHandler) Latest(c *gin.Context) {
-	userID, deviceID, ok := h.resolveAccess(c)
+	deviceID, ok := h.resolveAccess(c)
 	if !ok {
 		return
 	}
-	_ = userID
 
 	device, err := h.deviceSvc.Get(c.Request.Context(), deviceID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch device"})
+		return
+	}
+	if device == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "device not found"})
 		return
 	}
 
@@ -223,36 +235,37 @@ func (h *LocationHandler) Latest(c *gin.Context) {
 	})
 }
 
-// resolveAccess parses device_id from query, validates JWT user access, returns (userID, deviceID, ok).
-func (h *LocationHandler) resolveAccess(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {
+// resolveAccess parses device_id from query and validates JWT user access,
+// returning (deviceID, ok). It writes the error response itself when !ok.
+func (h *LocationHandler) resolveAccess(c *gin.Context) (uuid.UUID, bool) {
 	userID, ok := c.MustGet("user_id").(uuid.UUID)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
-		return uuid.UUID{}, uuid.UUID{}, false
+		return uuid.UUID{}, false
 	}
 
 	deviceIDStr := c.Query("device_id")
 	if deviceIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "device_id is required"})
-		return uuid.UUID{}, uuid.UUID{}, false
+		return uuid.UUID{}, false
 	}
 	deviceID, err := uuid.Parse(deviceIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "device_id must be a valid UUID"})
-		return uuid.UUID{}, uuid.UUID{}, false
+		return uuid.UUID{}, false
 	}
 
 	hasAccess, err := h.deviceSvc.HasAccess(c.Request.Context(), userID, deviceID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check permissions"})
-		return uuid.UUID{}, uuid.UUID{}, false
+		return uuid.UUID{}, false
 	}
 	if !hasAccess {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
-		return uuid.UUID{}, uuid.UUID{}, false
+		return uuid.UUID{}, false
 	}
 
-	return userID, deviceID, true
+	return deviceID, true
 }
 
 // normalizeDecimal replaces comma decimal separators with periods (iOS locale issue).

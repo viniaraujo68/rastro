@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -61,12 +61,21 @@ func (s *DeviceService) HasAccess(ctx context.Context, userID, deviceID uuid.UUI
 	return ok, nil
 }
 
-// List returns all devices the user owns plus devices they have explicit permission to see.
+// List returns all devices the user owns plus devices they have explicit
+// permission to see, each with the timestamp of its most recent location
+// (last_seen, nil when the device never reported) resolved in the same query.
 func (s *DeviceService) List(ctx context.Context, userID uuid.UUID) ([]models.Device, error) {
 	const q = `
-		SELECT DISTINCT d.id, d.owner_id, d.name, d.is_active, d.created_at, d.updated_at
+		SELECT DISTINCT d.id, d.owner_id, d.name, d.is_active, d.created_at, d.updated_at, ll.timestamp
 		FROM devices d
 		LEFT JOIN device_permissions dp ON dp.device_id = d.id AND dp.user_id = $1
+		LEFT JOIN LATERAL (
+			SELECT l.timestamp
+			FROM locations l
+			WHERE l.device_id = d.id
+			ORDER BY l.timestamp DESC
+			LIMIT 1
+		) ll ON true
 		WHERE d.owner_id = $1 OR dp.user_id = $1
 		ORDER BY d.created_at DESC`
 
@@ -79,7 +88,7 @@ func (s *DeviceService) List(ctx context.Context, userID uuid.UUID) ([]models.De
 	var devices []models.Device
 	for rows.Next() {
 		var d models.Device
-		if err := rows.Scan(&d.ID, &d.OwnerID, &d.Name, &d.IsActive, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.OwnerID, &d.Name, &d.IsActive, &d.CreatedAt, &d.UpdatedAt, &d.LastSeen); err != nil {
 			return nil, fmt.Errorf("scan device: %w", err)
 		}
 		devices = append(devices, d)
@@ -97,14 +106,16 @@ func (s *DeviceService) Create(ctx context.Context, ownerID uuid.UUID, name stri
 	const q = `
 		INSERT INTO devices (owner_id, name, api_key)
 		VALUES ($1, $2, $3)
-		RETURNING id, owner_id, name, api_key, is_active, created_at, updated_at`
+		RETURNING id, owner_id, name, is_active, created_at, updated_at`
 
 	var d models.Device
-	err = s.db.QueryRow(ctx, q, ownerID, name, apiKey).
-		Scan(&d.ID, &d.OwnerID, &d.Name, &d.APIKey, &d.IsActive, &d.CreatedAt, &d.UpdatedAt)
+	err = s.db.QueryRow(ctx, q, ownerID, name, HashAPIKey(apiKey)).
+		Scan(&d.ID, &d.OwnerID, &d.Name, &d.IsActive, &d.CreatedAt, &d.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create device: %w", err)
 	}
+	// only the hash is persisted; the raw key is shown to the caller this once
+	d.APIKey = apiKey
 	return &d, nil
 }
 
@@ -153,7 +164,7 @@ func (s *DeviceService) RotateKey(ctx context.Context, ownerID, deviceID uuid.UU
 		UPDATE devices SET api_key = $1, updated_at = now()
 		WHERE id = $2 AND owner_id = $3`
 
-	tag, err := s.db.Exec(ctx, q, newKey, deviceID, ownerID)
+	tag, err := s.db.Exec(ctx, q, HashAPIKey(newKey), deviceID, ownerID)
 	if err != nil {
 		return "", fmt.Errorf("rotate key: %w", err)
 	}
@@ -171,16 +182,9 @@ func generateAPIKey() (string, error) {
 	return "rk_" + hex.EncodeToString(b), nil
 }
 
-// lastLocation returns the most recent timestamp for a device (used by the handler for display).
-func (s *DeviceService) LastSeen(ctx context.Context, deviceID uuid.UUID) (*time.Time, error) {
-	const q = `SELECT timestamp FROM locations WHERE device_id = $1 ORDER BY timestamp DESC LIMIT 1`
-	var t time.Time
-	err := s.db.QueryRow(ctx, q, deviceID).Scan(&t)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("last seen: %w", err)
-	}
-	return &t, nil
+// HashAPIKey returns the hex SHA-256 digest under which device API keys are
+// stored. Keys are 256-bit random, so an unsalted digest suffices.
+func HashAPIKey(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(sum[:])
 }

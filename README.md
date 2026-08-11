@@ -6,7 +6,7 @@ Plataforma pessoal de rastreamento de localização em tempo real. O iPhone envi
 
 | Camada | Tecnologia |
 |--------|-----------|
-| Backend | Go 1.22+ + Gin |
+| Backend | Go 1.24+ + Gin |
 | Frontend | React 18 + Vite + TypeScript |
 | Mapas | Leaflet + react-leaflet |
 | Banco | Supabase (PostgreSQL + Auth + RLS) |
@@ -17,10 +17,10 @@ Plataforma pessoal de rastreamento de localização em tempo real. O iPhone envi
 ## Arquitetura de deploy
 
 ```
-Usuário → Cloudflare (HTTPS + CDN + DDoS) → VPS porta 80 → nginx → /api/* → backend:8080
+Usuário → Cloudflare (HTTPS + CDN + DDoS) → VPS → proxy de borda compartilhado (rede `web`) → nginx do frontend → /api/* → backend:8080
 ```
 
-O HTTPS é gerenciado inteiramente pelo Cloudflare (proxy ativo, ícone de nuvem laranja). O servidor VPS só precisa escutar na porta 80. No painel do Cloudflare, configure **SSL/TLS → Overview** como **Flexible** (Cloudflare↔servidor via HTTP) ou **Full** (se quiser TLS no trecho interno também).
+O HTTPS é gerenciado inteiramente pelo Cloudflare (proxy ativo, ícone de nuvem laranja). Os containers do Rastro não publicam portas no host: o proxy de borda compartilhado (rede Docker externa `web`) é quem recebe o tráfego e encaminha para o container `rastro-frontend`. No painel do Cloudflare, configure **SSL/TLS → Overview** como **Flexible** (Cloudflare↔servidor via HTTP) ou **Full** (se quiser TLS no trecho interno também).
 
 ---
 
@@ -30,7 +30,7 @@ O HTTPS é gerenciado inteiramente pelo Cloudflare (proxy ativo, ícone de nuvem
 - [Cloudflare](https://cloudflare.com) — domínio apontando pro Cloudflare com proxy ativo (nuvem laranja)
 - Docker + Docker Compose (para deploy)
 - Node.js 20+ (para desenvolvimento local do frontend)
-- Go 1.22+ (para desenvolvimento local do backend)
+- Go 1.24+ (para desenvolvimento local do backend)
 
 ---
 
@@ -116,7 +116,6 @@ Em **Project Settings → API**:
 | Variável | Onde encontrar |
 |----------|---------------|
 | `SUPABASE_URL` | Project URL |
-| `SUPABASE_SERVICE_KEY` | `service_role` secret |
 | `VITE_SUPABASE_ANON_KEY` | `anon` public key |
 
 Em **Project Settings → API → JWT Settings**:
@@ -145,7 +144,6 @@ Edite `.env` com as credenciais coletadas acima:
 # Backend
 DATABASE_URL=postgresql://postgres:SUA_SENHA@db.PROJETO.supabase.co:5432/postgres
 SUPABASE_URL=https://PROJETO.supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
 SUPABASE_JWT_SECRET=seu-jwt-secret
 CORS_ORIGINS=https://seu-dominio.com
 
@@ -162,7 +160,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 docker compose up -d --build
 ```
 
-- Frontend: `http://SEU_DOMINIO` — o Cloudflare termina o HTTPS e faz proxy para a porta 80 do VPS
+- Frontend: `http://SEU_DOMINIO` — o Cloudflare termina o HTTPS e o proxy de borda compartilhado encaminha para o container `rastro-frontend` (nenhuma porta é publicada no host)
 - Backend: acessível apenas internamente via `http://backend:8080` (sem porta exposta ao host)
 
 Para ver os logs:
@@ -232,9 +230,7 @@ O Shortcut envia sua localização para o Rastro automaticamente a cada X minuto
   "latitude": «Localização Atual.Latitude»,
   "longitude": «Localização Atual.Longitude»,
   "address": "«Localização Atual.Endereço»",
-  "accuracy": «Localização Atual.Precisão Horizontal»,
   "altitude": «Localização Atual.Altitude»,
-  "speed": 0,
   "battery_level": «Nível da Bateria»,
   "timestamp": "«Data Atual» (formato ISO 8601)"
 }
@@ -288,9 +284,7 @@ X-Device-Key: rk_...
   "latitude": -22.9068,
   "longitude": -43.1729,
   "address": "Av. Atlântica, 1702",
-  "accuracy": 10.5,
   "altitude": 8.2,
-  "speed": 0.0,
   "battery_level": 72,
   "timestamp": "2025-12-02T16:09:59-03:00"
 }

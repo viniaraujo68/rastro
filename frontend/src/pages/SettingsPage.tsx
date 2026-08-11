@@ -2,22 +2,29 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Ico } from '../components/icons/Ico'
 
-const POLLING_OPTIONS = [
+export const POLLING_STORAGE_KEY = 'rastro_polling_ms'
+export const DEFAULT_POLLING_MS = 30_000
+const MIN_POLLING_MS = 5_000
+
+export const POLLING_OPTIONS = [
   { ms: 15_000, label: '15s' },
-  { ms: 30_000, label: '30s' },
+  { ms: DEFAULT_POLLING_MS, label: '30s' },
   { ms: 60_000, label: '60s' },
 ]
 
+/** Reads the stored polling interval, falling back to the default for missing/corrupted values. */
+export function readPollingMs(): number {
+  const stored = Number(localStorage.getItem(POLLING_STORAGE_KEY))
+  return Number.isFinite(stored) && stored >= MIN_POLLING_MS ? stored : DEFAULT_POLLING_MS
+}
+
 export default function SettingsPage() {
   const { user, signOut } = useAuth()
-  const [pollingMs, setPollingMs] = useState<number>(() => {
-    const stored = localStorage.getItem('rastro_polling_ms')
-    return stored ? Number(stored) : 30_000
-  })
+  const [pollingMs, setPollingMs] = useState<number>(readPollingMs)
 
   function handlePollingChange(ms: number) {
     setPollingMs(ms)
-    localStorage.setItem('rastro_polling_ms', String(ms))
+    localStorage.setItem(POLLING_STORAGE_KEY, String(ms))
   }
 
   return (

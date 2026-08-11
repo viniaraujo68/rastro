@@ -45,19 +45,22 @@ func main() {
 	}
 
 	r := gin.New()
+	// The app runs behind a dockerized nginx on a private network: only honor
+	// X-Forwarded-For / X-Real-IP when the immediate peer is a private proxy.
+	if err := r.SetTrustedProxies([]string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}); err != nil {
+		log.Fatal().Err(err).Msg("failed to set trusted proxies")
+	}
 	r.Use(gin.Recovery())
-	r.Use(zerlogMiddleware())
+	r.Use(zerologMiddleware())
 	r.Use(corsMiddleware(cfg.CORSOrigins))
 
 	locationSvc := services.NewLocationService(pool)
 	deviceSvc := services.NewDeviceService(pool)
 	permissionSvc := services.NewPermissionService(pool)
-	shareSvc := services.NewShareService(pool, locationSvc, deviceSvc)
 	healthHandler := handlers.NewHealthHandler(pool)
 	locationHandler := handlers.NewLocationHandler(locationSvc, deviceSvc)
 	deviceHandler := handlers.NewDeviceHandler(deviceSvc)
 	permissionHandler := handlers.NewPermissionHandler(permissionSvc)
-	shareHandler := handlers.NewShareHandler(shareSvc)
 
 	v1 := r.Group("/api/v1")
 	{
@@ -81,17 +84,15 @@ func main() {
 		userGroup.GET("/devices/:id/permissions", permissionHandler.List)
 		userGroup.POST("/devices/:id/permissions", permissionHandler.Grant)
 		userGroup.DELETE("/devices/:id/permissions/:user_id", permissionHandler.Revoke)
-		userGroup.POST("/devices/:id/share", shareHandler.Create)
-		userGroup.GET("/devices/:id/share", shareHandler.List)
-		userGroup.DELETE("/share/:token", shareHandler.Revoke)
-
-		// Public share endpoint (no auth, token is the secret)
-		v1.GET("/share/:token", shareHandler.Public)
 	}
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {
@@ -114,7 +115,7 @@ func main() {
 	log.Info().Msg("server stopped")
 }
 
-func zerlogMiddleware() gin.HandlerFunc {
+func zerologMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
@@ -135,6 +136,10 @@ func corsMiddleware(origins []string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
+		// Always vary on Origin: the response differs per origin, so shared
+		// caches must not serve one origin's response to another.
+		c.Writer.Header().Add("Vary", "Origin")
+
 		origin := c.Request.Header.Get("Origin")
 		if _, ok := allowed[origin]; ok {
 			c.Header("Access-Control-Allow-Origin", origin)

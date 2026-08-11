@@ -11,6 +11,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Sentinel errors returned by Grant so handlers can map them to friendly
+// responses without leaking driver internals.
+var (
+	ErrUserNotFound      = errors.New("target user not found")
+	ErrSelfGrant         = errors.New("cannot grant permission to yourself")
+	ErrInvalidPermission = errors.New("invalid permission")
+)
+
 type PermissionEntry struct {
 	ID         uuid.UUID `json:"id"`
 	DeviceID   uuid.UUID `json:"device_id"`
@@ -79,7 +87,7 @@ func (s *PermissionService) List(ctx context.Context, ownerID, deviceID uuid.UUI
 // Only the device owner may grant access.
 func (s *PermissionService) Grant(ctx context.Context, ownerID, deviceID uuid.UUID, email, permission string) (*PermissionEntry, error) {
 	if permission != "view" && permission != "admin" {
-		return nil, fmt.Errorf("permission must be 'view' or 'admin'")
+		return nil, ErrInvalidPermission
 	}
 
 	owner, err := s.isOwner(ctx, ownerID, deviceID)
@@ -97,13 +105,13 @@ func (s *PermissionService) Grant(ctx context.Context, ownerID, deviceID uuid.UU
 	).Scan(&targetUserID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("user with email %q not found — they must create an account first", email)
+			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("lookup user: %w", err)
 	}
 
 	if targetUserID == ownerID {
-		return nil, fmt.Errorf("cannot grant permission to yourself")
+		return nil, ErrSelfGrant
 	}
 
 	const q = `

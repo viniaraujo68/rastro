@@ -14,6 +14,9 @@ type Device struct {
 	IsActive  bool      `json:"is_active"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	// LastSeen is the timestamp of the device's most recent location.
+	// Only populated by DeviceService.List; nil when the device never reported.
+	LastSeen *time.Time `json:"last_seen,omitempty"`
 }
 
 type Location struct {
@@ -26,14 +29,6 @@ type Location struct {
 	BatteryLevel *int      `json:"battery_level,omitempty"`
 	Timestamp    time.Time `json:"timestamp"`
 	CreatedAt    time.Time `json:"created_at"`
-}
-
-type ShareLink struct {
-	ID        uuid.UUID `json:"id"`
-	DeviceID  uuid.UUID `json:"device_id"`
-	CreatedBy uuid.UUID `json:"created_by"`
-	ExpiresAt time.Time `json:"expires_at"`
-	CreatedAt time.Time `json:"created_at"`
 }
 
 type DevicePermission struct {

@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Device, DeviceWithKey, Location, Permission, ShareLink } from '../types'
+import type { Device, DeviceWithKey, Location, Permission } from '../types'
 
 const BASE = import.meta.env.VITE_API_URL as string
 
@@ -13,11 +13,20 @@ async function authHeaders(): Promise<Record<string, string>> {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = await authHeaders()
   const res = await fetch(`${BASE}${path}`, { ...init, headers: { ...headers, ...init?.headers } })
+  // 204 / empty bodies are valid responses (DELETE), so read as text and parse only if present.
+  const text = await res.text()
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    let message = `HTTP ${res.status}`
+    try {
+      const body = JSON.parse(text) as { error?: string }
+      if (body?.error) message = body.error
+    } catch {
+      // non-JSON error body: keep the status message
+    }
+    throw new Error(message)
   }
-  return res.json() as Promise<T>
+  if (!text) return undefined as T
+  return JSON.parse(text) as T
 }
 
 // Devices
@@ -30,10 +39,8 @@ export const createDevice = (name: string) =>
 export const updateDevice = (id: string, name: string, is_active: boolean) =>
   request<Device>(`/devices/${id}`, { method: 'PUT', body: JSON.stringify({ name, is_active }) })
 
-export const deleteDevice = async (id: string): Promise<void> => {
-  const headers = await authHeaders()
-  await fetch(`${BASE}/devices/${id}`, { method: 'DELETE', headers })
-}
+export const deleteDevice = (id: string): Promise<void> =>
+  request<void>(`/devices/${id}`, { method: 'DELETE' })
 
 export const rotateKey = (id: string) =>
   request<{ device_id: string; api_key: string }>(`/devices/${id}/rotate-key`, { method: 'POST' })
@@ -48,10 +55,8 @@ export const grantPermission = (deviceId: string, email: string, permission: 'vi
     body: JSON.stringify({ email, permission }),
   })
 
-export const revokePermission = async (deviceId: string, userId: string): Promise<void> => {
-  const headers = await authHeaders()
-  await fetch(`${BASE}/devices/${deviceId}/permissions/${userId}`, { method: 'DELETE', headers })
-}
+export const revokePermission = (deviceId: string, userId: string): Promise<void> =>
+  request<void>(`/devices/${deviceId}/permissions/${userId}`, { method: 'DELETE' })
 
 // Locations
 export const getLocations = (deviceId: string, from?: string, to?: string, limit = 1000) => {
@@ -69,24 +74,3 @@ export const getLatestLocation = (deviceId: string) =>
   request<{ device: Pick<Device, 'id' | 'name'>; location: Location }>(
     `/locations/latest?device_id=${deviceId}`
   )
-
-// Share links
-export const createShareLink = (deviceId: string, hours: number) =>
-  request<{ share_link: ShareLink }>(`/devices/${deviceId}/share`, {
-    method: 'POST',
-    body: JSON.stringify({ hours }),
-  }).then(r => r.share_link)
-
-export const getShareLinks = (deviceId: string) =>
-  request<{ share_links: ShareLink[] }>(`/devices/${deviceId}/share`).then(r => r.share_links ?? [])
-
-export const revokeShareLink = async (token: string): Promise<void> => {
-  const headers = await authHeaders()
-  await fetch(`${BASE}/share/${token}`, { method: 'DELETE', headers })
-}
-
-// Public share endpoint — no auth
-export const getSharedLocation = (token: string) =>
-  fetch(`${BASE}/share/${token}`)
-    .then(r => r.ok ? r.json() : r.json().then((b: { error?: string }) => Promise.reject(new Error(b.error ?? `HTTP ${r.status}`))))
-    .then(r => r as { device: Pick<Device, 'id' | 'name'>; location: Location | null })

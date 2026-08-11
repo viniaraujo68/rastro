@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	"rastro/backend/services"
 )
@@ -60,12 +62,26 @@ func (h *PermissionHandler) Grant(c *gin.Context) {
 
 	entry, err := h.permissionSvc.Grant(c.Request.Context(), ownerID, deviceID, req.Email, req.Permission)
 	if err != nil {
-		if errors.Is(err, services.ErrForbidden) {
+		switch {
+		case errors.Is(err, services.ErrForbidden):
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
-			return
+		case errors.Is(err, services.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "device not found"})
+		case errors.Is(err, services.ErrUserNotFound):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("user with email %q not found — they must create an account first", req.Email),
+			})
+		case errors.Is(err, services.ErrSelfGrant):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "cannot grant permission to yourself"})
+		case errors.Is(err, services.ErrInvalidPermission):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "permission must be 'view' or 'admin'"})
+		default:
+			// Never surface driver/query internals to the client.
+			log.Error().Err(err).
+				Str("device_id", deviceID.String()).
+				Msg("grant permission failed")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to grant permission"})
 		}
-		// Surface user-facing errors (user not found, self-grant) as 400
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

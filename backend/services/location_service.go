@@ -45,7 +45,9 @@ func (s *LocationService) Insert(ctx context.Context, deviceID uuid.UUID, loc *m
 	return id, nil
 }
 
-func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to time.Time, limit int) ([]models.Location, error) {
+// List returns up to limit locations in the range. It reads limit+1 rows so it
+// can report whether the result was truncated; the extra row is trimmed off.
+func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to time.Time, limit int) ([]models.Location, bool, error) {
 	const q = `
 		SELECT id, device_id, latitude, longitude, address, altitude, battery_level, timestamp, created_at
 		FROM locations
@@ -55,9 +57,9 @@ func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to
 		ORDER BY timestamp ASC
 		LIMIT $4`
 
-	rows, err := s.db.Query(ctx, q, deviceID, from, to, limit)
+	rows, err := s.db.Query(ctx, q, deviceID, from, to, limit+1)
 	if err != nil {
-		return nil, fmt.Errorf("list locations: %w", err)
+		return nil, false, fmt.Errorf("list locations: %w", err)
 	}
 	defer rows.Close()
 
@@ -69,11 +71,19 @@ func (s *LocationService) List(ctx context.Context, deviceID uuid.UUID, from, to
 			&l.Address, &l.Altitude,
 			&l.BatteryLevel, &l.Timestamp, &l.CreatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan location: %w", err)
+			return nil, false, fmt.Errorf("scan location: %w", err)
 		}
 		locs = append(locs, l)
 	}
-	return locs, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+
+	truncated := len(locs) > limit
+	if truncated {
+		locs = locs[:limit]
+	}
+	return locs, truncated, nil
 }
 
 func (s *LocationService) Latest(ctx context.Context, deviceID uuid.UUID) (*models.Location, error) {

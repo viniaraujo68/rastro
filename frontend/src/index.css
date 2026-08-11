@@ -88,39 +88,58 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Leaflet stacking context ──────────────────────────────── */
-/* Without z-index, .leaflet-container has no stacking context,
-   so internal Leaflet z-indices (tiles=200, controls=1000) bleed
-   into the page and cover floating overlays. z-index:0 isolates them. */
-.leaflet-container {
+/* ── MapLibre stacking context ─────────────────────────── */
+/* isolation cria um stacking context próprio, então os z-indices
+   internos do MapLibre (canvas, controles, popups) não sobem por
+   cima dos overlays flutuantes da página. */
+.maplibregl-map {
   z-index: 0;
+  isolation: isolate;
   background: var(--bg);
+  font-family: inherit;
 }
 
 /* ── Map attribution ───────────────────────────────────── */
-.leaflet-control-attribution {
-  font-size: 9px !important;
-  background: rgba(0,0,0,0.55) !important;
-  color: var(--text3) !important;
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib {
+  font-size: 9px;
+  background: rgba(0,0,0,0.55);
+  color: var(--text3);
   backdrop-filter: blur(4px);
-  padding: 2px 6px !important;
-  border-radius: 4px 0 0 0 !important;
+  border-radius: 4px 0 0 0;
 }
 
-.leaflet-control-attribution a {
-  color: var(--text3) !important;
+.maplibregl-ctrl-attrib a {
+  color: var(--text3);
 }
 
-/* ── Map zoom controls ─────────────────────────────────── */
-.leaflet-control-zoom a {
-  background: var(--surface) !important;
-  color: var(--text2) !important;
-  border-color: var(--border) !important;
+.maplibregl-ctrl-attrib-button {
+  background-color: rgba(13,26,46,0.9);
+  border-radius: 50%;
 }
 
-.leaflet-control-zoom a:hover {
-  background: var(--surface2) !important;
-  color: var(--text) !important;
+/* ── Popups (aparência de pill escura, igual aos overlays) ── */
+.rastro-popup .maplibregl-popup-content {
+  background: rgba(13,26,46,0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.rastro-popup .maplibregl-popup-tip {
+  border-top-color: rgba(13,26,46,0.92);
+  border-bottom-color: rgba(13,26,46,0.92);
+  border-left-color: rgba(13,26,46,0.92);
+  border-right-color: rgba(13,26,46,0.92);
+}
+
+.rastro-popup.maplibregl-popup {
+  /* o conteúdo é informativo; não deve roubar o hover do mapa */
+  pointer-events: none;
 }
 
 /* ── Device marker pulse ───────────────────────────────── */
