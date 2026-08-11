@@ -1,15 +1,19 @@
 import { useState, useEffect, type ReactNode, type CSSProperties } from 'react'
-import type { LatLngExpression } from 'leaflet'
-import { MapView } from '../components/Map/MapView'
+import { Link } from 'react-router-dom'
+import { MapView, type LatLng } from '../components/Map/MapView'
 import { DeviceMarker } from '../components/Map/DeviceMarker'
 import { TrailPath } from '../components/Map/TrailPath'
 import { HeatmapLayer } from '../components/Map/HeatmapLayer'
 import { useDevices } from '../hooks/useDevices'
 import { useLatestLocation, useLocationHistory } from '../hooks/useLocations'
 import { Ico } from '../components/icons/Ico'
+import { readPollingMs } from './SettingsPage'
 import type { Location, ViewMode } from '../types'
 
-const RIO: LatLngExpression = [-22.9068, -43.1729]
+const RIO: LatLng = [-22.9068, -43.1729]
+
+/** How often a non-custom date range is recomputed so a long-lived tab keeps showing fresh points. */
+const RANGE_REFRESH_MS = 60_000
 
 function formatAgo(iso: string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -55,12 +59,9 @@ const pillStyle: CSSProperties = {
   pointerEvents: 'auto',
 }
 
-type DatePreset = 'today' | '24h' | '7d' | '30d' | 'custom'
+type DatePreset = '24h' | 'custom'
 const DATE_PRESETS: { value: DatePreset; label: string }[] = [
-  { value: 'today', label: 'Hoje' },
   { value: '24h', label: '24h' },
-  { value: '7d', label: '7d' },
-  { value: '30d', label: '30d' },
   { value: 'custom', label: 'Personalizado' },
 ]
 
@@ -73,17 +74,8 @@ function buildRange(preset: Exclude<DatePreset, 'custom'>): DateRange {
   const now = new Date()
   const to = now.toISOString()
   switch (preset) {
-    case 'today': {
-      const from = new Date(now)
-      from.setHours(0, 0, 0, 0)
-      return { from: from.toISOString(), to }
-    }
     case '24h':
       return { from: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), to }
-    case '7d':
-      return { from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), to }
-    case '30d':
-      return { from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(), to }
   }
 }
 
@@ -105,12 +97,12 @@ export default function DashboardPage() {
   const [datePreset, setDatePreset] = useState<DatePreset>('24h')
   const [dateRange, setDateRange] = useState<DateRange>(buildRange('24h'))
   const [focusedLocation, setFocusedLocation] = useState<Location | null>(null)
-  const [stableCenter, setStableCenter] = useState<LatLngExpression | null>(null)
+  const [stableCenter, setStableCenter] = useState<LatLng | null>(null)
   const [animateMap, setAnimateMap] = useState(false)
   const [deviceMenuOpen, setDeviceMenuOpen] = useState(false)
   const [, setTick] = useState(0)
 
-  const pollingInterval = Number(localStorage.getItem('rastro_polling_ms') || 30000)
+  const pollingInterval = readPollingMs()
 
   useEffect(() => {
     if (!selectedDeviceId && devices.length > 0) {
@@ -125,11 +117,18 @@ export default function DashboardPage() {
 
   useEffect(() => { setFocusedLocation(null); setAnimateMap(false) }, [selectedDeviceId, viewMode])
 
+  // Keep the relative range (e.g. "24h") anchored to now while the tab stays open.
+  // A user-entered custom range is never touched.
+  useEffect(() => {
+    if (datePreset === 'custom' || viewMode === 'realtime') return
+    setDateRange(buildRange(datePreset))
+    const id = setInterval(() => setDateRange(buildRange(datePreset)), RANGE_REFRESH_MS)
+    return () => clearInterval(id)
+  }, [datePreset, viewMode])
+
   function handlePresetChange(preset: DatePreset) {
+    // Non-custom presets get their range from the refresh effect below.
     setDatePreset(preset)
-    if (preset !== 'custom') {
-      setDateRange(buildRange(preset))
-    }
   }
 
   const { location: latestLocation, loading: latestLoading } = useLatestLocation(
@@ -156,7 +155,7 @@ export default function DashboardPage() {
 
   const selectedDevice = devices.find(d => d.id === selectedDeviceId)
 
-  const mapCenter: LatLngExpression = focusedLocation
+  const mapCenter: LatLng = focusedLocation
     ? [focusedLocation.latitude, focusedLocation.longitude]
     : stableCenter ?? RIO
 
@@ -324,9 +323,12 @@ export default function DashboardPage() {
           <p style={styles.emptyTitle}>Nenhum device</p>
           <p style={styles.emptyHint}>
             Acesse{' '}
-            <a href="/devices" style={{ color: 'var(--text)', textDecoration: 'underline' }}>
+            <Link
+              to="/devices"
+              style={{ color: 'var(--text)', textDecoration: 'underline', pointerEvents: 'auto' }}
+            >
               Devices
-            </a>{' '}
+            </Link>{' '}
             para adicionar um.
           </p>
         </div>
@@ -354,12 +356,6 @@ export default function DashboardPage() {
                 <span style={styles.sep} />
                 <Ico name="battery" size={13} color="var(--text3)" />
                 <span style={styles.statusText}>{latestLocation.battery_level}%</span>
-              </>
-            )}
-            {latestLocation.accuracy != null && (
-              <>
-                <span style={styles.sep} />
-                <span style={styles.statusText}>±{Math.round(latestLocation.accuracy)}m</span>
               </>
             )}
           </FloatingPill>

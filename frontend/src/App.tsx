@@ -5,13 +5,11 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import DevicesPage from './pages/DevicesPage'
 import SettingsPage from './pages/SettingsPage'
-import SharePage from './pages/SharePage'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/share/:token" element={<SharePage />} />
       <Route element={<AuthGuard />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />

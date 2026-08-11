@@ -5,11 +5,10 @@ import { PermissionForm } from '../components/Permissions/PermissionForm'
 import { Ico } from '../components/icons/Ico'
 import {
   getDevices, createDevice, updateDevice, deleteDevice, rotateKey,
-  getPermissions, grantPermission, revokePermission, getLatestLocation,
-  getShareLinks, createShareLink, revokeShareLink,
+  getPermissions, grantPermission, revokePermission,
 } from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
-import type { Device, DeviceWithKey, Location, Permission, ShareLink } from '../types'
+import type { Device, DeviceWithKey, Permission } from '../types'
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -40,7 +39,7 @@ function Badge({ children, color = 'green' }: { children: React.ReactNode; color
 export default function DevicesPage() {
   const { user } = useAuth()
   const [devices, setDevices] = useState<Device[]>([])
-  const [latestLocations, setLatestLocations] = useState<Record<string, Location | null>>({})
+  const [error, setError] = useState<string | null>(null)
   const [permissions, setPermissions] = useState<Record<string, Permission[]>>({})
   const [permissionsLoading, setPermissionsLoading] = useState<Record<string, boolean>>({})
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -48,27 +47,15 @@ export default function DevicesPage() {
   const [newName, setNewName] = useState('')
   const [newDeviceKey, setNewDeviceKey] = useState<DeviceWithKey | null>(null)
   const [loading, setLoading] = useState(true)
-  const [shareLinks, setShareLinks] = useState<Record<string, ShareLink[]>>({})
-  const [shareLinksLoading, setShareLinksLoading] = useState<Record<string, boolean>>({})
-  const [copiedToken, setCopiedToken] = useState<string | null>(null)
   const createInputRef = useRef<HTMLInputElement>(null)
 
   const loadDevices = useCallback(async () => {
     setLoading(true)
     try {
-      const list = await getDevices()
-      setDevices(list)
-      const entries = await Promise.all(
-        list.map(async d => {
-          try {
-            const r = await getLatestLocation(d.id)
-            return [d.id, r.location] as const
-          } catch {
-            return [d.id, null] as const
-          }
-        })
-      )
-      setLatestLocations(Object.fromEntries(entries))
+      setDevices(await getDevices())
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -87,54 +74,35 @@ export default function DevicesPage() {
     try {
       const list = await getPermissions(deviceId)
       setPermissions(p => ({ ...p, [deviceId]: list }))
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
     } finally {
       setPermissionsLoading(p => ({ ...p, [deviceId]: false }))
     }
   }
 
-  async function loadShareLinks(deviceId: string) {
-    setShareLinksLoading(s => ({ ...s, [deviceId]: true }))
-    try {
-      const list = await getShareLinks(deviceId)
-      setShareLinks(s => ({ ...s, [deviceId]: list }))
-    } finally {
-      setShareLinksLoading(s => ({ ...s, [deviceId]: false }))
-    }
-  }
-
-  function handleExpand(id: string) {
-    if (expandedId === id) { setExpandedId(null); return }
-    setExpandedId(id)
-    if (!permissions[id]) loadPermissions(id)
-    if (!shareLinks[id]) loadShareLinks(id)
-  }
-
-  async function handleCreateShareLink(deviceId: string, hours: number) {
-    await createShareLink(deviceId, hours)
-    await loadShareLinks(deviceId)
-  }
-
-  async function handleRevokeShareLink(deviceId: string, token: string) {
-    await revokeShareLink(token)
-    await loadShareLinks(deviceId)
-  }
-
-  async function handleCopyLink(token: string) {
-    const url = `${window.location.origin}/share/${token}`
-    await navigator.clipboard.writeText(url)
-    setCopiedToken(token)
-    setTimeout(() => setCopiedToken(null), 2000)
+  function handleExpand(device: Device) {
+    if (expandedId === device.id) { setExpandedId(null); return }
+    setExpandedId(device.id)
+    // Only the owner may list permissions; asking for a shared device returns 403.
+    if (device.owner_id === user?.id && !permissions[device.id]) loadPermissions(device.id)
   }
 
   async function handleCreate() {
     const name = newName.trim()
     if (!name) return
-    const device = await createDevice(name)
-    setNewDeviceKey(device)
-    setShowCreate(false)
-    setNewName('')
-    await loadDevices()
-    setExpandedId(device.id)
+    try {
+      const device = await createDevice(name)
+      setNewDeviceKey(device)
+      setShowCreate(false)
+      setNewName('')
+      setError(null)
+      await loadDevices()
+      setExpandedId(device.id)
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
 
   function handleCreateKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -142,32 +110,54 @@ export default function DevicesPage() {
   }
 
   async function handleToggleActive(device: Device) {
-    await updateDevice(device.id, device.name, !device.is_active)
-    await loadDevices()
+    try {
+      await updateDevice(device.id, device.name, !device.is_active)
+      setError(null)
+      await loadDevices()
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
 
   async function handleDelete(device: Device) {
     if (!window.confirm(`Tem certeza que quer deletar "${device.name}"?`)) return
     if (!window.confirm('ATENÇÃO: isso apagará TODO o histórico de localização. Confirmar?')) return
-    await deleteDevice(device.id)
-    if (expandedId === device.id) setExpandedId(null)
-    await loadDevices()
+    try {
+      await deleteDevice(device.id)
+      if (expandedId === device.id) setExpandedId(null)
+      setError(null)
+      await loadDevices()
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
 
   async function handleRotateKey(device: Device) {
     if (!window.confirm('Isso vai invalidar a API key atual. Continuar?')) return
-    const result = await rotateKey(device.id)
-    setNewDeviceKey({ ...device, api_key: result.api_key })
+    try {
+      const result = await rotateKey(device.id)
+      setNewDeviceKey({ ...device, api_key: result.api_key })
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
 
   async function handleGrant(deviceId: string, email: string, permission: 'view' | 'admin') {
+    // Errors bubble up: PermissionForm renders them inline next to its own input.
     await grantPermission(deviceId, email, permission)
     await loadPermissions(deviceId)
   }
 
   async function handleRevoke(deviceId: string, userId: string) {
     if (!window.confirm('Revogar acesso deste usuário?')) return
-    await revokePermission(deviceId, userId)
+    try {
+      await revokePermission(deviceId, userId)
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
+      return
+    }
     await loadPermissions(deviceId)
   }
 
@@ -208,6 +198,8 @@ export default function DevicesPage() {
           </div>
         )}
 
+        {error && <p style={styles.errorBanner}>{error}</p>}
+
         {loading && <p style={styles.hint}>Carregando...</p>}
 
         {!loading && devices.length === 0 && !showCreate && (
@@ -230,7 +222,6 @@ export default function DevicesPage() {
         {/* Device list */}
         <div style={styles.list}>
           {devices.map(device => {
-            const loc = latestLocations[device.id]
             const isExpanded = expandedId === device.id
             const isOwner = device.owner_id === user?.id
 
@@ -241,7 +232,7 @@ export default function DevicesPage() {
               }}>
                 {/* Card header */}
                 <button
-                  onClick={() => handleExpand(device.id)}
+                  onClick={() => handleExpand(device)}
                   style={styles.cardHeader}
                   className="tap-none"
                 >
@@ -262,16 +253,9 @@ export default function DevicesPage() {
                       </Badge>
                     </div>
                     <div style={styles.cardMeta}>
-                      {loc ? (
-                        <>
-                          <span style={styles.metaText}>{formatRelative(loc.timestamp)}</span>
-                          {loc.battery_level != null && (
-                            <span style={styles.metaText}>{loc.battery_level}%</span>
-                          )}
-                        </>
-                      ) : (
-                        <span style={styles.metaText}>Sem dados</span>
-                      )}
+                      <span style={styles.metaText}>
+                        {device.last_seen ? formatRelative(device.last_seen) : 'Sem dados'}
+                      </span>
                     </div>
                   </div>
 
@@ -297,40 +281,6 @@ export default function DevicesPage() {
                           <Ico name="refresh" size={13} />
                           Rotacionar API key
                         </button>
-                      </section>
-                    )}
-
-                    {isOwner && (
-                      <section style={styles.section}>
-                        <p style={styles.sectionTitle}>Links de compartilhamento</p>
-                        {shareLinksLoading[device.id] && <p style={styles.sectionHint}>Carregando...</p>}
-                        {!shareLinksLoading[device.id] && (shareLinks[device.id] ?? []).map(link => (
-                          <div key={link.id} style={styles.shareRow}>
-                            <span style={styles.shareExpiry}>
-                              expira {new Date(link.expires_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <button onClick={() => handleCopyLink(link.id)} style={styles.actionBtn}>
-                              {copiedToken === link.id
-                                ? <><Ico name="check" size={13} color="var(--green)" /> Copiado</>
-                                : <><Ico name="copy" size={13} /> Copiar link</>
-                              }
-                            </button>
-                            <button onClick={() => handleRevokeShareLink(device.id, link.id)} style={styles.revokeShareBtn}>
-                              Revogar
-                            </button>
-                          </div>
-                        ))}
-                        {!shareLinksLoading[device.id] && (shareLinks[device.id] ?? []).length === 0 && (
-                          <p style={styles.sectionHint}>Nenhum link ativo.</p>
-                        )}
-                        <div style={styles.shareCreate}>
-                          {([1, 24, 168] as const).map(h => (
-                            <button key={h} onClick={() => handleCreateShareLink(device.id, h)} style={styles.actionBtn}>
-                              <Ico name="link" size={13} />
-                              {h === 1 ? '1h' : h === 24 ? '24h' : '7d'}
-                            </button>
-                          ))}
-                        </div>
                       </section>
                     )}
 
@@ -414,6 +364,11 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
   },
   hint: { fontSize: 13, color: 'var(--text3)' },
+  errorBanner: {
+    fontSize: 13, color: 'var(--red)', background: 'var(--red-dim)',
+    border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10,
+    padding: '10px 14px', marginBottom: 16,
+  },
   keyBanner: {
     background: 'var(--yellow-dim)', border: '1px solid rgba(251,191,36,0.2)',
     borderRadius: 10, padding: 16, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 10,
@@ -468,16 +423,5 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '7px 14px', background: 'var(--red-dim)',
     border: '1px solid rgba(248,113,113,0.2)', color: 'var(--red)',
     borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-  },
-  shareRow: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    flexWrap: 'wrap' as const, marginBottom: 6,
-  },
-  shareExpiry: { fontSize: 12, color: 'var(--text3)', flex: 1 },
-  shareCreate: { display: 'flex', gap: 6, marginTop: 4 },
-  revokeShareBtn: {
-    padding: '6px 12px', background: 'var(--red-dim)',
-    border: '1px solid rgba(248,113,113,0.2)', color: 'var(--red)',
-    borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
   },
 }

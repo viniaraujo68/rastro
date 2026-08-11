@@ -5,6 +5,8 @@ export interface Device {
   is_active: boolean
   created_at: string
   updated_at: string
+  /** ISO timestamp of the most recent location, when the API provides it. */
+  last_seen?: string | null
 }
 
 export interface DeviceWithKey extends Device {
@@ -17,9 +19,7 @@ export interface Location {
   latitude: number
   longitude: number
   address?: string
-  accuracy?: number
   altitude?: number
-  speed?: number
   battery_level?: number
   timestamp: string
   created_at: string
@@ -33,14 +33,6 @@ export interface Permission {
   permission: 'view' | 'admin'
   granted_by: string
   granted_at: string
-}
-
-export interface ShareLink {
-  id: string
-  device_id: string
-  created_by: string
-  expires_at: string
-  created_at: string
 }
 
 export type ViewMode = 'realtime' | 'trail' | 'heatmap'
