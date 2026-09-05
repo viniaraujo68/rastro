@@ -12,6 +12,7 @@ import {
 } from './support/index.js';
 
 const NEW_DEVICE_NAME = 'Trail Beacon';
+const MALFORMED_EMAIL = 'abc';
 
 const cardToggle = (page: Page, name: string) =>
 	page.getByRole('button', { name: new RegExp(name) });
@@ -128,4 +129,30 @@ test('revoking an access confirms first and then calls the API', async ({ page }
 	expect(
 		api.matching('DELETE', `/api/v1/devices/${OWNED_DEVICE_ID}/permissions/${OTHER_USER.id}`)
 	).toHaveLength(1);
+});
+
+test('an invalid guest e-mail is refused before any request', async ({ page }) => {
+	const api = await mockBackend(page);
+	await openDevices(page);
+	await cardToggle(page, OWNED_DEVICE_NAME).click();
+
+	const field = page.getByLabel(t('permissions.email'));
+	await field.fill(MALFORMED_EMAIL);
+	await page.getByRole('button', { name: t('permissions.invite') }).click();
+
+	await expect(field).toHaveJSProperty('validity.valid', false);
+	expect(api.matching('POST', `/api/v1/devices/${OWNED_DEVICE_ID}/permissions`)).toHaveLength(0);
+});
+
+test('a nameless device is refused before any request', async ({ page }) => {
+	const api = await mockBackend(page);
+	await openDevices(page);
+
+	await page.getByRole('button', { name: t('devices.new') }).click();
+	const field = page.getByLabel(t('devices.name'));
+	await expect(field).toBeVisible();
+	await page.getByRole('button', { name: t('devices.create') }).click();
+
+	await expect(field).toHaveJSProperty('validity.valid', false);
+	expect(api.matching('POST', '/api/v1/devices')).toHaveLength(0);
 });

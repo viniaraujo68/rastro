@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { AsyncButton, Skeleton } from '@viniaraujo68/plinth/components';
+	import { AsyncAction } from '@viniaraujo68/plinth';
+	import { AsyncButton, LoadingButton, Skeleton } from '@viniaraujo68/plinth/components';
 	import { confirm } from '@viniaraujo68/plinth/confirm';
 	import { errorMessage } from '@viniaraujo68/plinth/http';
 	import { toast } from '@viniaraujo68/plinth/toast';
@@ -84,7 +85,7 @@
 		newName = '';
 	};
 
-	const submitCreate = async () => {
+	const create = new AsyncAction(async () => {
 		const name = newName.trim();
 		if (!name) return;
 		try {
@@ -98,6 +99,11 @@
 		} catch (error) {
 			toast.error(errorMessage(error));
 		}
+	});
+
+	const submitCreate = (event: SubmitEvent) => {
+		event.preventDefault();
+		void create.run();
 	};
 
 	const toggleActive = async (device: Device) => {
@@ -193,7 +199,7 @@
 	{#if creating}
 		<form
 			class="card flex flex-col gap-3 border border-base-content/10 bg-base-100 p-4"
-			onsubmit={(event) => event.preventDefault()}
+			onsubmit={submitCreate}
 		>
 			<input
 				type="text"
@@ -205,9 +211,9 @@
 				aria-label={t('devices.name')}
 			/>
 			<div class="flex gap-2">
-				<AsyncButton class="btn btn-sm btn-primary" type="submit" onclick={submitCreate}>
+				<LoadingButton class="btn btn-sm btn-primary" type="submit" loading={create.isPending}>
 					{t('devices.create')}
-				</AsyncButton>
+				</LoadingButton>
 				<button type="button" class="btn btn-ghost btn-sm" onclick={cancelCreate}>
 					{t('common.cancel')}
 				</button>
