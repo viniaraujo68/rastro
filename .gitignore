@@ -6,6 +6,12 @@
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/build/
+frontend/.svelte-kit/
+frontend/.env.test
+frontend/e2e/__screenshots__/
+frontend/test-results/
+frontend/playwright-report/
 
 # Go binaries
 backend/rastro-backend

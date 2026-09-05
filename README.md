@@ -7,8 +7,8 @@ Plataforma pessoal de rastreamento de localização em tempo real. O iPhone envi
 | Camada | Tecnologia |
 |--------|-----------|
 | Backend | Go 1.24+ + Gin |
-| Frontend | React 18 + Vite + TypeScript |
-| Mapas | Leaflet + react-leaflet |
+| Frontend | SvelteKit + Svelte 5 + TypeScript (plinth design system) |
+| Mapas | MapLibre GL |
 | Banco | Supabase (PostgreSQL + Auth + RLS) |
 | Proxy / HTTPS | Cloudflare (nuvem laranja ativa) |
 
@@ -320,13 +320,13 @@ rastro/
 │   ├── models/       # Structs
 │   ├── services/     # Lógica de negócio
 │   └── Dockerfile
-├── frontend/         # React + Vite + TypeScript
+├── frontend/         # SvelteKit + Svelte 5 + TypeScript
 │   ├── src/
-│   │   ├── components/   # Map, Controls, Timeline, Stats, Devices, Permissions, Layout
-│   │   ├── hooks/        # useAuth, useDevices, useLocations
-│   │   ├── lib/          # supabase.ts, api.ts
-│   │   ├── pages/        # Login, Dashboard, Devices, Settings
-│   │   └── types/        # TypeScript types
+│   │   ├── lib/          # supabase.ts, api.ts, auth.svelte.ts, messages.ts, format.ts, prefs.ts
+│   │   │   └── components/   # BrandMark, Icon, Map
+│   │   ├── routes/       # / (mapa), /devices, /settings, /login
+│   │   └── app.html
+│   ├── static/       # icon.svg, manifest.json
 │   ├── nginx.conf
 │   └── Dockerfile
 ├── docker-compose.yml
