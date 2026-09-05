@@ -257,16 +257,14 @@
 			</FloatingPill>
 		</div>
 
-		{#if viewMode !== 'realtime'}
-			<FloatingPill panel class="max-w-full px-3 py-2">
-				<DateRangePicker
-					presets={RANGE_PRESETS}
-					reAnchorMs={RANGE_RE_ANCHOR_MS}
-					label={t('dashboard.range')}
-					onchange={(next) => (range = next)}
-				/>
-			</FloatingPill>
-		{/if}
+		<FloatingPill panel class={['max-w-full px-3 py-2', viewMode === 'realtime' && 'hidden']}>
+			<DateRangePicker
+				presets={RANGE_PRESETS}
+				reAnchorMs={RANGE_RE_ANCHOR_MS}
+				label={t('dashboard.range')}
+				onchange={(next) => (range = next)}
+			/>
+		</FloatingPill>
 	</div>
 
 	{#if showNoDevices}
