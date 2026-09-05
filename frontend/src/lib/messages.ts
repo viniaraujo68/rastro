@@ -53,6 +53,7 @@ export const messages = {
 
 	'page.map.title': 'Mapa',
 	'page.devices.title': 'Dispositivos',
+	'page.settings.title': 'Configurações',
 
 	'devices.count': '{count} dispositivos',
 	'devices.countOne': '1 dispositivo',

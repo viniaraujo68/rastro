@@ -26,10 +26,12 @@
 </script>
 
 <svelte:head>
-	<title>{t('nav.settings')} · {t('app.name')}</title>
+	<title>{t('page.settings.title')} · {t('app.name')}</title>
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-lg flex-col gap-6 p-4 sm:p-6">
+	<h1 class="text-xl font-bold tracking-tight">{t('page.settings.title')}</h1>
+
 	<section class="flex flex-col gap-2">
 		<h2 class="section-label">{t('settings.account')}</h2>
 		<div class="card border border-base-content/10 bg-base-100">
