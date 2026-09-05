@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import {
 		buildRange,
 		DateRangePicker,
@@ -117,6 +117,12 @@
 		resetFocus();
 	};
 
+	const moveStableCenter = (latitude: number, longitude: number) => {
+		const current = untrack(() => stableCenter);
+		if (current && current[0] === latitude && current[1] === longitude) return;
+		stableCenter = [latitude, longitude];
+	};
+
 	const focusPoint = (location: Location) => {
 		animateMap = true;
 		focusedLocation = location;
@@ -184,12 +190,12 @@
 
 	$effect(() => {
 		const location = latestLocation;
-		if (location) stableCenter = [location.latitude, location.longitude];
+		if (location) moveStableCenter(location.latitude, location.longitude);
 	});
 
 	$effect(() => {
 		const last = trailLocations.at(-1);
-		if (last) stableCenter = [last.latitude, last.longitude];
+		if (last) moveStableCenter(last.latitude, last.longitude);
 	});
 </script>
 

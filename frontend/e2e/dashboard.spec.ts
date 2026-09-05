@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { format, formatKm } from '../src/lib/format.js';
 import { totalDistanceKm } from '../src/lib/geo.js';
 import { t } from '../src/lib/messages.js';
+import { POLLING_STORAGE_KEY } from '../src/lib/prefs.js';
 import {
 	buildFixtures,
 	capture,
@@ -12,6 +13,37 @@ import {
 } from './support/index.js';
 
 const CUSTOM_RANGE_START = '2026-01-02T03:04';
+const FAST_POLLING_MS = 5_000;
+const DRAG_OFFSET = 120;
+const MIN_PAN_PIXELS = 60;
+const PAN_TOLERANCE = 4;
+const SETTLE_STEP_MS = 100;
+const SETTLE_ATTEMPTS = 30;
+
+const usePolling = (page: Page, milliseconds: number) =>
+	page.addInitScript(
+		([key, value]) => localStorage.setItem(key, value),
+		[POLLING_STORAGE_KEY, String(milliseconds)] as const
+	);
+
+const markerBox = async (page: Page) => {
+	const box = await page.locator('.device-marker').boundingBox();
+	expect(box).not.toBeNull();
+	return box!;
+};
+
+const settledMarkerBox = async (page: Page) => {
+	let previous = await markerBox(page);
+	for (let attempt = 0; attempt < SETTLE_ATTEMPTS; attempt += 1) {
+		await page.waitForTimeout(SETTLE_STEP_MS);
+		const current = await markerBox(page);
+		if (Math.abs(current.x - previous.x) < 0.5 && Math.abs(current.y - previous.y) < 0.5) {
+			return current;
+		}
+		previous = current;
+	}
+	return previous;
+};
 
 const viewModeButton = (page: Page, label: string) => page.getByRole('button', { name: label });
 
@@ -131,4 +163,39 @@ test('a device without any location waits for one', async ({ page }, info) => {
 	await expect(page.getByText(t('dashboard.waitingTitle'))).toBeVisible();
 	await expect(page.getByText(t('dashboard.waitingHint'))).toBeVisible();
 	await capture(page, info, 'dashboard-waiting');
+});
+
+test('a poll leaves the panned camera where the user left it', async ({ page }) => {
+	await usePolling(page, FAST_POLLING_MS);
+	await mockBackend(page, buildFixtures());
+	const latest = page.waitForResponse((response) =>
+		response.url().includes('/api/v1/locations/latest')
+	);
+	await signIn(page);
+	await latest;
+
+	const before = await settledMarkerBox(page);
+
+	const canvas = page.locator('.maplibregl-canvas');
+	const bounds = await canvas.boundingBox();
+	expect(bounds).not.toBeNull();
+	await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(
+		bounds!.x + bounds!.width / 2 - DRAG_OFFSET,
+		bounds!.y + bounds!.height / 2,
+		{ steps: 12 }
+	);
+	await page.mouse.up();
+
+	const panned = await settledMarkerBox(page);
+	expect(before.x - panned.x).toBeGreaterThan(MIN_PAN_PIXELS);
+
+	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
+	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
+
+	const after = await markerBox(page);
+	expect(Math.abs(after.x - panned.x)).toBeLessThan(PAN_TOLERANCE);
+	expect(Math.abs(after.y - panned.y)).toBeLessThan(PAN_TOLERANCE);
+	expect(before.x - after.x).toBeGreaterThan(MIN_PAN_PIXELS);
 });

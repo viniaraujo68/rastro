@@ -35,6 +35,9 @@
 	const handle = new MapHandle();
 	setMapHandle(handle);
 
+	const latitude = $derived(center[0]);
+	const longitude = $derived(center[1]);
+
 	let container = $state<HTMLDivElement>();
 	let instance: maplibregl.Map | undefined;
 	let appliedStyleUrl: string | undefined;
@@ -83,7 +86,7 @@
 		const map = handle.map;
 		if (!map) return;
 
-		const target = { center: [center[1], center[0]] as [number, number], zoom };
+		const target = { center: [longitude, latitude] as [number, number], zoom };
 		if (animate) map.easeTo({ ...target, duration: EASE_DURATION_MS });
 		else map.jumpTo(target);
 	});
