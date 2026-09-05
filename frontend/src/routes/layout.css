@@ -1,0 +1,92 @@
+@import '@viniaraujo68/plinth/theme.css';
+
+@source "../../node_modules/@viniaraujo68/plinth/dist";
+
+@import 'tailwindcss';
+
+@plugin "daisyui" {
+	exclude: rootscrollgutter;
+}
+
+:root {
+	--ink-primary: color-mix(in oklab, var(--color-primary) 70%, var(--color-base-content));
+	--ink-muted: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+
+@layer base {
+	html,
+	body {
+		height: 100%;
+	}
+
+	body {
+		background-color: var(--color-base-100);
+		color: var(--color-base-content);
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+	}
+}
+
+@layer components {
+	.section-label {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--ink-muted);
+	}
+}
+
+.maplibregl-popup.rastro-popup .maplibregl-popup-content {
+	background-color: var(--color-base-100);
+	color: var(--color-base-content);
+	border: 1px solid color-mix(in oklch, var(--color-base-content) 12%, transparent);
+	border-radius: var(--radius-box);
+	box-shadow: 0 10px 30px color-mix(in oklch, var(--color-base-300) 60%, transparent);
+	padding: 0.625rem 0.75rem;
+	font-family: var(--font-sans);
+	font-size: 0.8125rem;
+}
+
+.maplibregl-popup.rastro-popup .maplibregl-popup-tip {
+	border-top-color: var(--color-base-100);
+	border-bottom-color: var(--color-base-100);
+	border-left-color: var(--color-base-100);
+	border-right-color: var(--color-base-100);
+}
+
+.maplibregl-popup.rastro-popup .maplibregl-popup-close-button {
+	color: var(--ink-muted);
+	font-size: 1rem;
+	padding: 0 0.25rem;
+}
+
+.maplibregl-popup.rastro-popup .maplibregl-popup-close-button:hover {
+	background-color: transparent;
+	color: var(--color-base-content);
+}
+
+:where(button, a, summary, [role='button'], [role='tab'], [role='radio'], [tabindex]):focus-visible {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	.loading {
+		animation-duration: 2s !important;
+		animation-iteration-count: infinite !important;
+	}
+
+	.plinth-skeleton {
+		animation: none !important;
+	}
+}
