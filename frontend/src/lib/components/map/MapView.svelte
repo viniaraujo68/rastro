@@ -92,7 +92,7 @@
 	});
 </script>
 
-<div bind:this={container} class="size-full" aria-label={t('map.region')}></div>
+<div bind:this={container} class="size-full" role="region" aria-label={t('map.region')}></div>
 
 {#if handle.map}
 	{@render children?.()}
