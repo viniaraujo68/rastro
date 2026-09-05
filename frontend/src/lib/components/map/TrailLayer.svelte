@@ -22,7 +22,8 @@
 		GRADIENT_COOL,
 		GRADIENT_MID,
 		GRADIENT_WARM,
-		summarizeCluster
+		summarizeCluster,
+		type LocationCluster
 	} from '$lib/geo.js';
 	import { t } from '$lib/messages.js';
 	import type { Location } from '$lib/types.js';
@@ -41,6 +42,7 @@
 	let hoveredIndex = $state<number | null>(null);
 	let popupElement = $state<HTMLDivElement>();
 	let popup: maplibregl.Popup | undefined;
+	let hoverableClusters: readonly LocationCluster[] = [];
 
 	const clusters = $derived(clusterLocations(locations));
 	const lastIndex = $derived(clusters.length - 1);
@@ -196,7 +198,15 @@
 
 		applyData(styled.map, LINE_SOURCE_ID, nextLine);
 		applyData(styled.map, POINTS_SOURCE_ID, nextPoints);
-		hoveredIndex = null;
+	});
+
+	$effect(() => {
+		const next = clusters;
+		untrack(() => {
+			if (next === hoverableClusters) return;
+			hoverableClusters = next;
+			hoveredIndex = null;
+		});
 	});
 
 	$effect(() => {

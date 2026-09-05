@@ -233,3 +233,40 @@ test('a failed poll keeps the last position and reports the failure', async ({ p
 	await expect(page.locator('.device-marker')).toBeVisible();
 	await expect(page.getByText(t('dashboard.waitingTitle'))).toHaveCount(0);
 });
+
+test('clicking a trail point keeps its popup open', async ({ page }) => {
+	await mockBackend(page, buildFixtures());
+	await signIn(page);
+
+	await viewModeButton(page, t('dashboard.viewTrail')).click();
+
+	const canvas = page.locator('.maplibregl-canvas');
+	await expect(canvas).toBeVisible();
+	const bounds = await canvas.boundingBox();
+	expect(bounds).not.toBeNull();
+
+	const centreX = bounds!.x + bounds!.width / 2;
+	const centreY = bounds!.y + bounds!.height / 2;
+	await page.mouse.move(centreX - 4, centreY - 4);
+	await page.mouse.move(centreX, centreY);
+	await expect(page.locator('.rastro-popup')).toBeVisible();
+
+	await page.mouse.click(centreX, centreY);
+	await expect(page.locator('.rastro-popup')).toBeVisible();
+	await page.waitForTimeout(SETTLE_STEP_MS);
+	await expect(page.locator('.rastro-popup')).toBeVisible();
+});
+
+test('the marker popup survives a poll', async ({ page }) => {
+	await usePolling(page, FAST_POLLING_MS);
+	await mockBackend(page, buildFixtures());
+	await signIn(page);
+
+	await page.locator('.device-marker').click();
+	await expect(page.locator('.rastro-popup')).toBeVisible();
+
+	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
+	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
+
+	await expect(page.locator('.rastro-popup')).toBeVisible();
+});

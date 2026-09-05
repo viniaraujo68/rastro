@@ -1,5 +1,6 @@
 <script lang="ts">
 	import maplibregl from 'maplibre-gl';
+	import { untrack } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { format } from '$lib/format.js';
 	import { t } from '$lib/messages.js';
@@ -17,7 +18,7 @@
 
 	let markerElement = $state<HTMLDivElement>();
 	let popupElement = $state<HTMLDivElement>();
-	let marker: maplibregl.Marker | undefined;
+	let marker = $state<maplibregl.Marker>();
 
 	$effect(() => {
 		const map = handle.map;
@@ -30,13 +31,15 @@
 			className: 'rastro-popup'
 		}).setDOMContent(popupElement);
 
-		marker = new maplibregl.Marker({ element: markerElement, anchor: 'center' })
-			.setLngLat([location.longitude, location.latitude])
+		const created = new maplibregl.Marker({ element: markerElement, anchor: 'center' })
+			.setLngLat(untrack(() => [location.longitude, location.latitude]))
 			.setPopup(popup)
 			.addTo(map);
 
+		marker = created;
+
 		return () => {
-			marker?.remove();
+			created.remove();
 			marker = undefined;
 		};
 	});
