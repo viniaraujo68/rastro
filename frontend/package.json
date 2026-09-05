@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
-    "@viniaraujo68/plinth": "github:viniaraujo68/plinth#86974c14c39aa99e95924e050f32e74e55a7d6fd",
+    "@viniaraujo68/plinth": "github:viniaraujo68/plinth#7008f6caacac6a90ff373c04a990ec24e2b7e7af",
     "maplibre-gl": "^5.24.0"
   },
   "devDependencies": {
