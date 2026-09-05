@@ -5,7 +5,7 @@
   },
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
+      "version": "22"
     }
   },
 
@@ -49,6 +49,7 @@
     "vscode": {
       "extensions": [
         "golang.go",
+        "svelte.svelte-vscode",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "ms-vscode.vscode-typescript-next",
