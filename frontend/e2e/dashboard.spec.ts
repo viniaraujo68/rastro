@@ -118,16 +118,16 @@ test('a custom range survives a round trip through realtime', async ({ page }, i
 		'true'
 	);
 
-	await rangePresets(page).getByRole('button', { name: 'Custom' }).click();
-	await page.getByLabel('From').fill(CUSTOM_RANGE_START);
-	await expect(page.getByLabel('From')).toHaveValue(CUSTOM_RANGE_START);
+	await rangePresets(page).getByRole('button', { name: t('dashboard.rangeCustom') }).click();
+	await page.getByLabel(t('dashboard.rangeFrom'), { exact: true }).fill(CUSTOM_RANGE_START);
+	await expect(page.getByLabel(t('dashboard.rangeFrom'), { exact: true })).toHaveValue(CUSTOM_RANGE_START);
 
 	await viewModeButton(page, t('dashboard.viewRealtime')).click();
-	await expect(page.getByLabel('From')).toBeHidden();
+	await expect(page.getByLabel(t('dashboard.rangeFrom'), { exact: true })).toBeHidden();
 
 	await viewModeButton(page, t('dashboard.viewTrail')).click();
-	await expect(page.getByLabel('From')).toHaveValue(CUSTOM_RANGE_START);
-	await expect(rangePresets(page).getByRole('button', { name: 'Custom' })).toHaveAttribute(
+	await expect(page.getByLabel(t('dashboard.rangeFrom'), { exact: true })).toHaveValue(CUSTOM_RANGE_START);
+	await expect(rangePresets(page).getByRole('button', { name: t('dashboard.rangeCustom') })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);

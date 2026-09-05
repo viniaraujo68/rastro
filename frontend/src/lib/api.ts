@@ -1,5 +1,6 @@
 import { createHttpClient, errorStatus } from '@viniaraujo68/plinth/http';
 import { signOut } from './auth.svelte.js';
+import { t } from './messages.js';
 import { supabase } from './supabase.js';
 import type {
 	Device,
@@ -16,7 +17,7 @@ const client = createHttpClient({
 	auth: async () => (await supabase.auth.getSession()).data.session?.access_token ?? '',
 	parseError: (status, body) => {
 		const error = (body as { error?: unknown } | null)?.error;
-		return typeof error === 'string' ? error : `HTTP ${status}`;
+		return typeof error === 'string' ? error : t('error.http', { status });
 	}
 });
 

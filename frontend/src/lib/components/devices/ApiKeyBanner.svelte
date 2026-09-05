@@ -35,7 +35,12 @@
 	</div>
 
 	<div class="flex flex-wrap items-center gap-2 rounded-[var(--radius-field)] bg-base-100 p-2">
-		<Copyable class="min-w-0 flex-1 font-mono text-xs" copyableText={apiKey}>
+		<Copyable
+			class="min-w-0 flex-1 font-mono text-xs"
+			copyableText={apiKey}
+			copyLabel={t('common.copy')}
+			copiedLabel={t('common.copied')}
+		>
 			{revealed ? apiKey : masked}
 		</Copyable>
 		<button

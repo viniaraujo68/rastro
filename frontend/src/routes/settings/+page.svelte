@@ -54,7 +54,13 @@
 					</span>
 					<div class="flex min-w-0 flex-col">
 						<span class="text-xs text-base-content/60">{t('settings.userId')}</span>
-						<Copyable class="font-mono text-xs">{auth.user?.id ?? ''}</Copyable>
+						<Copyable
+							class="font-mono text-xs"
+							copyLabel={t('common.copy')}
+							copiedLabel={t('common.copied')}
+						>
+							{auth.user?.id ?? ''}
+						</Copyable>
 					</div>
 				</div>
 			</div>
