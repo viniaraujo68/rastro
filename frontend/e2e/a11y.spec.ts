@@ -13,13 +13,19 @@ const namelessButtons = (page: Page): Promise<ButtonNaming[]> =>
 	page.locator('button:visible').evaluateAll((nodes) =>
 		nodes
 			.map((node) => {
-				const label = node.getAttribute('aria-label')?.trim() ?? '';
-				const labelledBy = node.getAttribute('aria-labelledby')?.trim() ?? '';
-				const title = node.getAttribute('title')?.trim() ?? '';
-				const text = (node.textContent ?? '').trim();
+				const element = node as HTMLElement;
+				const label = element.getAttribute('aria-label')?.trim() ?? '';
+				const labelledBy = (element.getAttribute('aria-labelledby') ?? '')
+					.split(/\s+/)
+					.filter(Boolean)
+					.map((id) => document.getElementById(id)?.innerText?.trim() ?? '')
+					.join(' ')
+					.trim();
+				const title = element.getAttribute('title')?.trim() ?? '';
+				const text = element.innerText.trim();
 				return {
-					outerHTML: node.outerHTML.slice(0, 120),
-					named: Boolean(label || labelledBy || title || text)
+					outerHTML: element.outerHTML.slice(0, 120),
+					named: Boolean(label || labelledBy || text || title)
 				};
 			})
 			.filter((entry) => !entry.named)
