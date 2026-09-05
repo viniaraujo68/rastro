@@ -43,6 +43,8 @@
 		devices.length === 1 ? t('devices.countOne') : t('devices.count', { count: devices.length })
 	);
 
+	const showCount = $derived(!loadFailed || devices.length > 0);
+
 	const isOwner = (device: Device) => device.owner_id === auth.user?.id;
 
 	const loadDevices = async () => {
@@ -186,7 +188,9 @@
 	<div class="flex items-start justify-between gap-3">
 		<div class="flex flex-col">
 			<h1 class="text-xl font-bold tracking-tight">{t('page.devices.title')}</h1>
-			<p class="text-sm text-base-content/60">{countLabel}</p>
+			{#if showCount}
+				<p class="text-sm text-base-content/60">{countLabel}</p>
+			{/if}
 		</div>
 		<button
 			type="button"
