@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Copyable } from '@viniaraujo68/plinth/components';
 	import Icon from '$lib/components/Icon.svelte';
 	import { t } from '$lib/messages.js';
@@ -12,8 +13,18 @@
 	let { deviceName, apiKey, onDismiss }: Props = $props();
 
 	let revealed = $state(false);
+	let revealedKey = '';
 
 	const masked = $derived('•'.repeat(Math.min(apiKey.length, 32)));
+
+	$effect(() => {
+		const key = apiKey;
+		untrack(() => {
+			if (key === revealedKey) return;
+			revealedKey = key;
+			revealed = false;
+		});
+	});
 </script>
 
 <div

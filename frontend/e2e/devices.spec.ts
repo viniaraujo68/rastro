@@ -7,6 +7,7 @@ import {
 	OTHER_USER,
 	OWNED_DEVICE_ID,
 	OWNED_DEVICE_NAME,
+	ROTATED_DEVICE_API_KEY,
 	SHARED_DEVICE_NAME,
 	signIn
 } from './support/index.js';
@@ -155,4 +156,54 @@ test('a nameless device is refused before any request', async ({ page }) => {
 
 	await expect(field).toHaveJSProperty('validity.valid', false);
 	expect(api.matching('POST', '/api/v1/devices')).toHaveLength(0);
+});
+
+test('a failed device list offers a retry instead of an empty list', async ({ page }) => {
+	await mockBackend(page);
+
+	let broken = true;
+	await page.route('**/api/v1/devices', async (route, request) => {
+		if (request.method() === 'GET' && broken) {
+			await route.fulfill({
+				status: 500,
+				contentType: 'application/json',
+				body: JSON.stringify({ error: 'device store unavailable' })
+			});
+			return;
+		}
+		await route.fallback();
+	});
+
+	await openDevices(page);
+
+	const alert = page.getByRole('alert').filter({ hasText: t('devices.loadFailed') });
+	await expect(alert).toBeVisible();
+	await expect(page.getByText(t('devices.empty'))).toHaveCount(0);
+
+	broken = false;
+	await alert.getByRole('button', { name: t('common.retry') }).click();
+
+	await expect(cardToggle(page, OWNED_DEVICE_NAME)).toBeVisible();
+	await expect(alert).toHaveCount(0);
+});
+
+test('revealing one API key does not reveal the next', async ({ page }) => {
+	await mockBackend(page);
+	await openDevices(page);
+
+	await page.getByRole('button', { name: t('devices.new') }).click();
+	await page.getByLabel(t('devices.name')).fill(NEW_DEVICE_NAME);
+	await page.getByRole('button', { name: t('devices.create') }).click();
+
+	const banner = page
+		.getByRole('status')
+		.filter({ hasText: t('devices.keyBannerTitle', { name: NEW_DEVICE_NAME }) });
+	await banner.getByRole('button', { name: t('devices.keyReveal') }).click();
+	await expect(banner.getByText(CREATED_DEVICE_API_KEY)).toBeVisible();
+
+	await page.getByRole('button', { name: t('devices.rotateKey') }).click();
+	await page.getByTestId('confirm-accept').click();
+
+	await expect(page.getByText(ROTATED_DEVICE_API_KEY)).toHaveCount(0);
+	await expect(banner.getByRole('button', { name: t('devices.keyReveal') })).toBeVisible();
 });

@@ -299,3 +299,34 @@ test('the map fills what the shell leaves and the pills stay over it', async ({ 
 	expect(pillBox!.y).toBeGreaterThanOrEqual(mapBox!.y);
 	expect(pillBox!.y + pillBox!.height).toBeLessThanOrEqual(mapBox!.y + mapBox!.height);
 });
+
+test('a failed device list offers a retry over the map', async ({ page }) => {
+	await mockBackend(page, buildFixtures());
+
+	let broken = true;
+	await page.route('**/api/v1/devices', async (route, request) => {
+		if (request.method() === 'GET' && broken) {
+			await route.fulfill({
+				status: 500,
+				contentType: 'application/json',
+				body: JSON.stringify({ error: 'device store unavailable' })
+			});
+			return;
+		}
+		await route.fallback();
+	});
+
+	await signIn(page);
+
+	const alert = page.getByRole('alert').filter({ hasText: t('devices.loadFailed') });
+	await expect(alert).toBeVisible();
+	await expect(
+		page.getByRole('status').filter({ hasText: t('dashboard.noDevicesHintAfter') })
+	).toHaveCount(0);
+
+	broken = false;
+	await alert.getByRole('button', { name: t('common.retry') }).click();
+
+	await expect(alert).toHaveCount(0);
+	await expect(page.locator('.device-marker')).toBeVisible();
+});

@@ -8,6 +8,7 @@
 		type DateRangePreset,
 		type SelectOption
 	} from '@viniaraujo68/plinth/components';
+	import { AsyncButton } from '@viniaraujo68/plinth/components';
 	import { errorMessage, errorStatus } from '@viniaraujo68/plinth/http';
 	import { toast } from '@viniaraujo68/plinth/toast';
 	import { getDevices, getLatestLocation, getLocations } from '$lib/api.js';
@@ -45,6 +46,7 @@
 
 	let devices = $state<Device[]>([]);
 	let devicesLoading = $state(true);
+	let devicesFailed = $state(false);
 	let selectedDeviceId = $state<string | null>(null);
 	let viewMode = $state<ViewMode>('realtime');
 	let range = $state<DateRange>(buildRange(RANGE_PRESETS[0]));
@@ -79,7 +81,7 @@
 
 	const trailDistanceKm = $derived(totalDistanceKm(trailLocations));
 
-	const showNoDevices = $derived(!devicesLoading && devices.length === 0);
+	const showNoDevices = $derived(!devicesLoading && !devicesFailed && devices.length === 0);
 
 	const showWaitingForLocation = $derived(
 		viewMode === 'realtime' &&
@@ -141,16 +143,23 @@
 		focusedLocation = location;
 	};
 
+	const loadDevices = async () => {
+		devicesLoading = true;
+		try {
+			const loaded = await getDevices();
+			devices = loaded;
+			devicesFailed = false;
+			if (selectedDeviceId === null && loaded.length > 0) selectedDeviceId = loaded[0].id;
+		} catch (error) {
+			devicesFailed = true;
+			toast.error(errorMessage(error));
+		} finally {
+			devicesLoading = false;
+		}
+	};
+
 	onMount(() => {
-		getDevices()
-			.then((loaded) => {
-				devices = loaded;
-				if (selectedDeviceId === null && loaded.length > 0) selectedDeviceId = loaded[0].id;
-			})
-			.catch((error: unknown) => toast.error(errorMessage(error)))
-			.finally(() => {
-				devicesLoading = false;
-			});
+		loadDevices();
 
 		const timer = setInterval(() => {
 			now = Date.now();
@@ -300,7 +309,17 @@
 		</FloatingPill>
 	</div>
 
-	{#if showNoDevices}
+	{#if devicesFailed}
+		<div class="pointer-events-none absolute inset-0 z-20 grid place-items-center p-6">
+			<div role="alert" class="alert pointer-events-auto max-w-72 alert-error alert-soft">
+				<Icon name="alert" class="size-4" />
+				<span class="flex-1 text-sm">{t('devices.loadFailed')}</span>
+				<AsyncButton class="btn btn-sm" onclick={loadDevices}>
+					{t('common.retry')}
+				</AsyncButton>
+			</div>
+		</div>
+	{:else if showNoDevices}
 		<MapOverlayCard title={t('dashboard.noDevicesTitle')}>
 			{t('dashboard.noDevicesHintBefore')}
 			<a href="/devices" class="pointer-events-auto link link-primary">{t('nav.devices')}</a>
