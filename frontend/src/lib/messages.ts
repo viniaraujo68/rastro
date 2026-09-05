@@ -94,7 +94,33 @@ export const messages = {
 	'permissions.revoke': 'Revogar',
 	'permissions.revokeLabel': 'Revogar o acesso de {email}',
 	'permissions.revokeConfirm': 'Revogar acesso?',
-	'permissions.revokeConfirmBody': '{email} perde o acesso a este dispositivo imediatamente.'
+	'permissions.revokeConfirmBody': '{email} perde o acesso a este dispositivo imediatamente.',
+
+	'map.region': 'Mapa de localizações',
+	'map.attribution': 'Atribuição do mapa',
+
+	'dashboard.device': 'Dispositivo',
+	'dashboard.devicePlaceholder': 'Nenhum dispositivo',
+	'dashboard.deviceStatusActive': 'Dispositivo ativo',
+	'dashboard.deviceStatusInactive': 'Dispositivo inativo',
+	'dashboard.viewMode': 'Modo de visualização',
+	'dashboard.viewRealtime': 'Ao vivo',
+	'dashboard.viewTrail': 'Trajeto',
+	'dashboard.viewHeatmap': 'Heatmap',
+	'dashboard.range': 'Período',
+	'dashboard.lastUpdate': 'Última atualização',
+	'dashboard.battery': 'Bateria',
+	'dashboard.noDevicesTitle': 'Nenhum dispositivo',
+	'dashboard.noDevicesHintBefore': 'Acesse',
+	'dashboard.noDevicesHintAfter': 'para adicionar um.',
+	'dashboard.waitingTitle': 'Aguardando localização',
+	'dashboard.waitingHint': 'Nenhum dado recebido ainda para este dispositivo.',
+	'dashboard.trailDistance': '{distance} no período',
+	'dashboard.rangeEmpty': 'Nenhum ponto no período',
+	'dashboard.heatmapPoint': '1 ponto no período',
+	'dashboard.heatmapPoints': '{count} pontos no período',
+
+	'trail.clusterDetail': '{duration} de permanência · {points} pontos'
 } as const;
 
 export type MessageKey = keyof typeof messages;
