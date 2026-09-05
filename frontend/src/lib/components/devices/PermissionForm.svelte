@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { AsyncButton, Select } from '@viniaraujo68/plinth/components';
+	import { AsyncAction } from '@viniaraujo68/plinth';
+	import { LoadingButton, Select } from '@viniaraujo68/plinth/components';
 	import { errorMessage } from '@viniaraujo68/plinth/http';
 	import { t } from '$lib/messages.js';
 	import type { PermissionLevel } from '$lib/types.js';
@@ -19,9 +20,8 @@
 		{ value: 'admin', label: t('permissions.admin') }
 	];
 
-	const submit = async () => {
+	const grant = new AsyncAction(async () => {
 		errorText = '';
-		if (!email.trim()) return;
 		try {
 			await onGrant(email.trim(), level === 'admin' ? 'admin' : 'view');
 			email = '';
@@ -29,10 +29,15 @@
 		} catch (error) {
 			errorText = errorMessage(error);
 		}
+	});
+
+	const submit = (event: SubmitEvent) => {
+		event.preventDefault();
+		void grant.run();
 	};
 </script>
 
-<form class="flex flex-col gap-2" onsubmit={(event) => event.preventDefault()}>
+<form class="flex flex-col gap-2" onsubmit={submit}>
 	<div class="flex flex-wrap items-center gap-2">
 		<input
 			type="email"
@@ -48,9 +53,9 @@
 			class="w-36"
 			aria-label={t('permissions.level')}
 		/>
-		<AsyncButton class="btn h-11 btn-primary" type="submit" onclick={submit}>
+		<LoadingButton class="btn h-11 btn-primary" type="submit" loading={grant.isPending}>
 			{t('permissions.invite')}
-		</AsyncButton>
+		</LoadingButton>
 	</div>
 
 	{#if errorText}
