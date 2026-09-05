@@ -270,3 +270,32 @@ test('the marker popup survives a poll', async ({ page }) => {
 
 	await expect(page.locator('.rastro-popup')).toBeVisible();
 });
+
+test('the map fills what the shell leaves and the pills stay over it', async ({ page }) => {
+	await mockBackend(page, buildFixtures());
+	await signIn(page);
+
+	const map = page.locator('.maplibregl-map');
+	const mapBox = await map.boundingBox();
+	expect(mapBox).not.toBeNull();
+
+	const viewport = page.viewportSize();
+	expect(viewport).not.toBeNull();
+	expect(mapBox!.height).toBeGreaterThan(viewport!.height * 0.6);
+
+	const header = page.locator('header.shell-top-bar');
+	if (await header.isVisible()) {
+		const headerBox = await header.boundingBox();
+		expect(mapBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height - 1);
+	}
+
+	const overflow = await page
+		.locator('main.shell-content')
+		.evaluate((element) => element.scrollHeight - element.clientHeight);
+	expect(overflow).toBeLessThanOrEqual(1);
+
+	const pill = page.getByRole('combobox', { name: t('dashboard.device') });
+	const pillBox = await pill.boundingBox();
+	expect(pillBox!.y).toBeGreaterThanOrEqual(mapBox!.y);
+	expect(pillBox!.y + pillBox!.height).toBeLessThanOrEqual(mapBox!.y + mapBox!.height);
+});

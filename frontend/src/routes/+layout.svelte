@@ -21,6 +21,7 @@
 	import { auth, initAuth } from '$lib/auth.svelte.js';
 	import BrandMark from '$lib/components/BrandMark.svelte';
 	import Icon, { type IconName } from '$lib/components/Icon.svelte';
+	import ShellTopBar from '$lib/components/ShellTopBar.svelte';
 	import { t } from '$lib/messages.js';
 	import { routes } from '$lib/routes.js';
 	import { user } from '$lib/user.js';
@@ -95,7 +96,12 @@
 				<ThemeToggle iconOnly preferenceLabel={themePreferenceLabel} label={themeLabel} />
 			{/snippet}
 
-			{@render children()}
+			<div class="shell-body">
+				<ShellTopBar />
+				<div class="shell-page">
+					{@render children()}
+				</div>
+			</div>
 		</AppShell>
 	</div>
 {:else}
@@ -123,3 +129,17 @@
 	closeLabel={t('common.close')}
 	challengeLabel={(value) => t('common.typeToConfirm', { value })}
 />
+
+<style>
+	.shell-body {
+		display: flex;
+		min-height: 100%;
+		flex-direction: column;
+	}
+
+	.shell-page {
+		display: grid;
+		flex: 1;
+		min-height: 0;
+	}
+</style>
