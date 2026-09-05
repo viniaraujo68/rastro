@@ -51,6 +51,10 @@
 		});
 </script>
 
+<svelte:head>
+	<meta name="description" content={t('app.tagline')} />
+</svelte:head>
+
 <ThemeController />
 
 {#if isLoginRoute && !signedIn}
