@@ -9,6 +9,13 @@ export const format = createFormatters(LOCALE, {
 
 const timeFormat = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' });
 
+const dayTimeFormat = new Intl.DateTimeFormat(LOCALE, {
+	day: '2-digit',
+	month: '2-digit',
+	hour: '2-digit',
+	minute: '2-digit'
+});
+
 const kilometreFormat = new Intl.NumberFormat(LOCALE, {
 	style: 'unit',
 	unit: 'kilometer',
@@ -18,6 +25,9 @@ const kilometreFormat = new Intl.NumberFormat(LOCALE, {
 
 export const formatTime = (value: string | number | Date): string =>
 	timeFormat.format(new Date(value));
+
+export const formatDayTime = (value: string | number | Date): string =>
+	dayTimeFormat.format(new Date(value));
 
 export const formatKm = (kilometres: number): string => kilometreFormat.format(kilometres);
 
