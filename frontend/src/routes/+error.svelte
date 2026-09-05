@@ -10,7 +10,7 @@
 <div class="min-h-dvh">
 	<ErrorPage
 		status={page.status}
-		message={page.error?.message ?? t('error.unexpected')}
+		message={page.error?.message}
 		pathname={page.url.pathname}
 		homeHref="/"
 		statusLabel={(status) => t('error.status', { status })}
