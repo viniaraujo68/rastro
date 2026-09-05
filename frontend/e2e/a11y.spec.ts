@@ -68,3 +68,34 @@ test('the shell navigation marks the current page', async ({ page }, info) => {
 	await expect(visibleNav(page).locator('[aria-current="page"]')).toHaveText(t('nav.settings'));
 	await capture(page, info, 'a11y-nav-current');
 });
+
+test('the compact header names the page on a narrow viewport only', async ({ page }, info) => {
+	await mockBackend(page);
+	await signIn(page);
+
+	const header = page.locator('header.shell-top-bar');
+	const mobile = info.project.name === 'mobile';
+
+	if (mobile) {
+		await expect(header).toBeVisible();
+		await expect(header).toContainText(t('app.name'));
+		await expect(header).toContainText(t('nav.map'));
+	} else {
+		await expect(header).toBeHidden();
+	}
+
+	await page.goto('/devices');
+	if (mobile) {
+		await expect(header).toContainText(t('nav.devices'));
+	} else {
+		await expect(header).toBeHidden();
+	}
+
+	await page.goto('/settings');
+	if (mobile) {
+		await expect(header).toContainText(t('nav.settings'));
+		await capture(page, info, 'a11y-compact-header');
+	} else {
+		await expect(header).toBeHidden();
+	}
+});
