@@ -158,7 +158,7 @@ test('a nameless device is refused before any request', async ({ page }) => {
 	expect(api.matching('POST', '/api/v1/devices')).toHaveLength(0);
 });
 
-test('a failed device list offers a retry instead of an empty list', async ({ page }) => {
+test('a failed device list offers a retry instead of an empty list', async ({ page }, info) => {
 	await mockBackend(page);
 
 	let broken = true;
@@ -179,12 +179,15 @@ test('a failed device list offers a retry instead of an empty list', async ({ pa
 	const alert = page.getByRole('alert').filter({ hasText: t('devices.loadFailed') });
 	await expect(alert).toBeVisible();
 	await expect(page.getByText(t('devices.empty'))).toHaveCount(0);
+	await expect(page.getByText(t('devices.count', { count: 0 }))).toHaveCount(0);
+	await capture(page, info, 'devices-load-failed');
 
 	broken = false;
 	await alert.getByRole('button', { name: t('common.retry') }).click();
 
 	await expect(cardToggle(page, OWNED_DEVICE_NAME)).toBeVisible();
 	await expect(alert).toHaveCount(0);
+	await expect(page.getByText(t('devices.count', { count: 2 }))).toBeVisible();
 });
 
 test('revealing one API key does not reveal the next', async ({ page }) => {

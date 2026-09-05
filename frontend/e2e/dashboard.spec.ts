@@ -203,7 +203,7 @@ test('a poll leaves the panned camera where the user left it', async ({ page }) 
 	expect(before.x - after.x).toBeGreaterThan(MIN_PAN_PIXELS);
 });
 
-test('a failed poll keeps the last position and reports the failure', async ({ page }) => {
+test('a failed poll keeps the last position and reports the failure', async ({ page }, info) => {
 	await usePolling(page, FAST_POLLING_MS);
 	const fixtures = buildFixtures();
 	await mockBackend(page, fixtures);
@@ -235,6 +235,7 @@ test('a failed poll keeps the last position and reports the failure', async ({ p
 	await expect(page.getByText(t('dashboard.updateFailed'))).toBeVisible();
 	await expect(page.locator('.device-marker')).toBeVisible();
 	await expect(page.getByText(t('dashboard.waitingTitle'))).toHaveCount(0);
+	await capture(page, info, 'dashboard-update-failed');
 });
 
 test('clicking a trail point keeps its popup open', async ({ page }) => {
@@ -303,7 +304,7 @@ test('the map fills what the shell leaves and the pills stay over it', async ({ 
 	expect(pillBox!.y + pillBox!.height).toBeLessThanOrEqual(mapBox!.y + mapBox!.height);
 });
 
-test('a failed device list offers a retry over the map', async ({ page }) => {
+test('a failed device list offers a retry over the map', async ({ page }, info) => {
 	await mockBackend(page, buildFixtures());
 
 	let broken = true;
@@ -326,6 +327,7 @@ test('a failed device list offers a retry over the map', async ({ page }) => {
 	await expect(
 		page.getByRole('status').filter({ hasText: t('dashboard.noDevicesHintAfter') })
 	).toHaveCount(0);
+	await capture(page, info, 'dashboard-devices-failed');
 
 	broken = false;
 	await alert.getByRole('button', { name: t('common.retry') }).click();
