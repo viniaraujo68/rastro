@@ -44,7 +44,6 @@ export const messages = {
 	'settings.preferences': 'Preferências',
 	'settings.pollingInterval': 'Intervalo de atualização',
 	'settings.pollingIntervalHint': 'Frequência com que o mapa busca a última localização.',
-	'settings.appearance': 'Aparência',
 	'settings.theme': 'Tema',
 
 	'duration.lessThanMinute': 'menos de 1min',
@@ -77,7 +76,6 @@ export const messages = {
 	'devices.active': 'Ativo',
 	'devices.inactive': 'Inativo',
 	'devices.noData': 'Sem dados',
-	'devices.details': 'Detalhes de {name}',
 	'devices.apiKey': 'API key',
 	'devices.apiKeyHint': 'A key não é exibida depois da criação, por segurança. Rotacione para gerar uma nova.',
 	'devices.rotateKey': 'Rotacionar API key',
@@ -110,7 +108,6 @@ export const messages = {
 	'permissions.revokeConfirmBody': '{email} perde o acesso a este dispositivo imediatamente.',
 
 	'map.region': 'Mapa de localizações',
-	'map.attribution': 'Atribuição do mapa',
 
 	'dashboard.device': 'Dispositivo',
 	'dashboard.devicePlaceholder': 'Nenhum dispositivo',
@@ -125,7 +122,6 @@ export const messages = {
 	'dashboard.rangeFrom': 'De',
 	'dashboard.rangeTo': 'Até',
 	'dashboard.rangeInvalid': 'O início não pode ser depois do fim.',
-	'dashboard.lastUpdate': 'Última atualização',
 	'dashboard.battery': 'Bateria',
 	'dashboard.noDevicesTitle': 'Nenhum dispositivo',
 	'dashboard.noDevicesHintBefore': 'Acesse',
