@@ -10,6 +10,8 @@ const holds = (role: string): boolean => {
 	return auth.session ? role === ROLE_USER : role === ROLE_GUEST;
 };
 
+const displayName = (email: string): string => email.split('@')[0] || email;
+
 export const user: UserContext = {
 	get status() {
 		if (!auth.ready) return 'loading';
@@ -17,7 +19,7 @@ export const user: UserContext = {
 	},
 	get data() {
 		const email = auth.user?.email ?? '';
-		return auth.session ? { name: email, email } : null;
+		return auth.session ? { name: displayName(email), email } : null;
 	},
 	hasRole: holds,
 	hasAnyRole: (roles) => roles.length === 0 || roles.some(holds),
