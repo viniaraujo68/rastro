@@ -63,6 +63,8 @@ test('the device picker lists every device and switching one updates the pill', 
 	await picker.click();
 	const options = page.getByRole('option');
 	await expect(options).toHaveText(fixtures.devices.map((device) => new RegExp(device.name)));
+	await expect(options.nth(0).locator('.bg-success')).toBeVisible();
+	await expect(options.nth(1).locator('.bg-success')).toHaveCount(0);
 
 	await options.nth(1).click();
 	await expect(picker).toHaveText(fixtures.devices[1].name);
