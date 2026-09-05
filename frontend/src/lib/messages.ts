@@ -15,6 +15,7 @@ export const messages = {
 	'common.cancel': 'Cancelar',
 	'common.typeToConfirm': 'Digite {value} para confirmar',
 	'common.loading': 'Carregando…',
+	'common.retry': 'Tentar de novo',
 	'common.copy': 'Copiar',
 	'common.copied': 'Copiado',
 
@@ -72,6 +73,7 @@ export const messages = {
 	'devices.namePlaceholder': 'Nome do dispositivo',
 	'devices.create': 'Criar',
 	'devices.empty': 'Nenhum dispositivo ainda. Crie um para começar.',
+	'devices.loadFailed': 'Não foi possível carregar os dispositivos.',
 	'devices.active': 'Ativo',
 	'devices.inactive': 'Inativo',
 	'devices.noData': 'Sem dados',

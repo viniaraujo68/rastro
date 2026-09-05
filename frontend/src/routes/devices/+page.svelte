@@ -30,6 +30,7 @@
 
 	let devices = $state<Device[]>([]);
 	let loading = $state(true);
+	let loadFailed = $state(false);
 	let expandedId = $state<string | null>(null);
 	let creating = $state(false);
 	let newName = $state('');
@@ -48,7 +49,9 @@
 		loading = true;
 		try {
 			devices = await getDevices();
+			loadFailed = false;
 		} catch (error) {
+			loadFailed = true;
 			toast.error(errorMessage(error));
 		} finally {
 			loading = false;
@@ -229,6 +232,16 @@
 		/>
 	{/if}
 
+	{#if loadFailed}
+		<div role="alert" class="alert alert-error alert-soft">
+			<Icon name="alert" class="size-4" />
+			<span class="flex-1 text-sm">{t('devices.loadFailed')}</span>
+			<AsyncButton class="btn btn-sm" onclick={loadDevices}>
+				{t('common.retry')}
+			</AsyncButton>
+		</div>
+	{/if}
+
 	{#if loading}
 		<div class="flex flex-col gap-3" role="status" aria-label={t('common.loading')}>
 			<Skeleton class="h-18 w-full" />
@@ -236,7 +249,7 @@
 			<Skeleton class="h-18 w-full" />
 		</div>
 	{:else if devices.length === 0}
-		{#if !creating}
+		{#if !creating && !loadFailed}
 			<p class="text-sm text-base-content/60">{t('devices.empty')}</p>
 		{/if}
 	{:else}
