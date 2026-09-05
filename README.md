@@ -29,7 +29,7 @@ O HTTPS é gerenciado inteiramente pelo Cloudflare (proxy ativo, ícone de nuvem
 - [Supabase](https://supabase.com) — projeto criado (gratuito)
 - [Cloudflare](https://cloudflare.com) — domínio apontando pro Cloudflare com proxy ativo (nuvem laranja)
 - Docker + Docker Compose (para deploy)
-- Node.js 20+ (para desenvolvimento local do frontend)
+- Node.js 22+ (para desenvolvimento local do frontend)
 - Go 1.24+ (para desenvolvimento local do backend)
 
 ---
@@ -194,6 +194,30 @@ npm run dev
 
 O Vite já está configurado com proxy: requisições para `/api` são redirecionadas para `localhost:8080`.
 
+O frontend é uma SPA SvelteKit (Svelte 5 com runes, TypeScript) construída sobre o design system [plinth](https://github.com/viniaraujo68/plinth), de onde vêm o `AppShell`, o tema claro/escuro, os componentes de formulário, os toasts e os diálogos de confirmação. Os mapas usam MapLibre GL com basemap CARTO. Toda a cópia em pt-BR fica em `src/lib/messages.ts`.
+
+#### Scripts
+
+| Comando | O que faz |
+|---------|-----------|
+| `npm run dev` | Servidor de desenvolvimento em `http://localhost:5173` |
+| `npm run build` | Build estático em `frontend/build/` |
+| `npm run preview` | Serve o build em `http://localhost:4173` |
+| `npm run check` | Type check com `svelte-check` |
+| `npm run lint` | ESLint em todo o projeto |
+| `npm run test:unit` | Testes unitários (Vitest) de `src/lib` |
+| `npm run test:e2e` | Suíte end-to-end (Playwright) em Chromium desktop e mobile |
+
+Os testes end-to-end sobem o próprio build (`vite preview` na porta 4173) e mockam toda a rede — Supabase Auth, `/api/v1` e o basemap —, então rodam sem backend e sem credenciais reais. Eles carregam `frontend/.env.test` (não versionado) via `--mode test`:
+
+```env
+VITE_SUPABASE_URL=https://test.supabase.co
+VITE_SUPABASE_ANON_KEY=test-anon-key
+VITE_API_URL=/api/v1
+```
+
+Na primeira execução é preciso baixar o navegador: `npx playwright install chromium`.
+
 ---
 
 ## 5. Criar seu primeiro device
@@ -263,8 +287,8 @@ O Shortcut envia sua localização para o Rastro automaticamente a cada X minuto
 
 | Funcionalidade | Descrição |
 |---------------|-----------|
-| **Tempo Real** | Última posição com atualização automática a cada 30s |
-| **Trajeto** | Polyline do percurso com Timeline lateral clicável |
+| **Tempo Real** | Última posição com atualização automática (intervalo escolhido em Configurações: 15s, 30s ou 60s) |
+| **Trajeto** | Percurso com gradiente temporal, agrupamento de pontos próximos e período configurável |
 | **Heatmap** | Mapa de calor de frequência de visitas |
 | **Stats** | Distância total, duração, velocidade média, bateria |
 | **Permissões** | Compartilhe acesso por email (somente visualização ou admin) |
@@ -320,13 +344,15 @@ rastro/
 │   ├── models/       # Structs
 │   ├── services/     # Lógica de negócio
 │   └── Dockerfile
-├── frontend/         # SvelteKit + Svelte 5 + TypeScript
+├── frontend/         # SvelteKit + Svelte 5 + TypeScript (plinth)
+│   ├── e2e/          # Suíte Playwright; support/ tem os mocks de rede
 │   ├── src/
-│   │   ├── lib/          # supabase.ts, api.ts, auth.svelte.ts, messages.ts, format.ts, prefs.ts
-│   │   │   └── components/   # BrandMark, Icon, Map
+│   │   ├── lib/          # supabase.ts, api.ts, auth.svelte.ts, messages.ts, format.ts, geo.ts, prefs.ts
+│   │   │   └── components/   # BrandMark, Icon, dashboard/, devices/, map/ (MapLibre)
 │   │   ├── routes/       # / (mapa), /devices, /settings, /login
 │   │   └── app.html
 │   ├── static/       # icon.svg, manifest.json
+│   ├── playwright.config.ts
 │   ├── nginx.conf
 │   └── Dockerfile
 ├── docker-compose.yml
