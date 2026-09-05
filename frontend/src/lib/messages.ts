@@ -114,6 +114,7 @@ export const messages = {
 	'dashboard.noDevicesTitle': 'Nenhum dispositivo',
 	'dashboard.noDevicesHintBefore': 'Acesse',
 	'dashboard.noDevicesHintAfter': 'para adicionar um.',
+	'dashboard.updateFailed': 'Não foi possível atualizar',
 	'dashboard.waitingTitle': 'Aguardando localização',
 	'dashboard.waitingHint': 'Nenhum dado recebido ainda para este dispositivo.',
 	'dashboard.trailDistance': '{distance} no período',
