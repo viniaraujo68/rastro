@@ -14,6 +14,7 @@ import {
 
 const CUSTOM_RANGE_START = '2026-01-02T03:04';
 const FAST_POLLING_MS = 5_000;
+const SLOW_POLLING_MS = 60_000;
 const DRAG_OFFSET = 120;
 const MIN_PAN_PIXELS = 60;
 const PAN_TOLERANCE = 4;
@@ -330,5 +331,24 @@ test('a failed device list offers a retry over the map', async ({ page }) => {
 	await alert.getByRole('button', { name: t('common.retry') }).click();
 
 	await expect(alert).toHaveCount(0);
+	await expect(page.locator('.device-marker')).toBeVisible();
+});
+
+test('a polling change made elsewhere restarts the poll', async ({ page }) => {
+	await usePolling(page, SLOW_POLLING_MS);
+	await mockBackend(page, buildFixtures());
+	await signIn(page);
+	await expect(page.locator('.device-marker')).toBeVisible();
+
+	await page.evaluate(
+		([key, value]) => {
+			localStorage.setItem(key, value);
+			window.dispatchEvent(new StorageEvent('storage', { key, newValue: value }));
+		},
+		[POLLING_STORAGE_KEY, String(FAST_POLLING_MS)] as const
+	);
+
+	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
+	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
 	await expect(page.locator('.device-marker')).toBeVisible();
 });
