@@ -19,8 +19,8 @@ export const OWNED_PERMISSION_ID = '5a0b8c17-6e49-4d32-a85f-71c9d3b04e68';
 export const OWNED_DEVICE_NAME = 'Field Phone';
 export const SHARED_DEVICE_NAME = 'Support Van';
 
-export const CREATED_DEVICE_API_KEY = 'rk_live_7f3c1d9b4a586e20c94f8d1e7b60a35c';
-export const ROTATED_DEVICE_API_KEY = 'rk_live_2b8e5c0a6d194f73a25c8e01b7d46f39';
+export const CREATED_DEVICE_API_KEY = 'rk_fixture_7f3c1d9b4a586e20c94f8d1e7b60a35c';
+export const ROTATED_DEVICE_API_KEY = 'rk_fixture_2b8e5c0a6d194f73a25c8e01b7d46f39';
 
 export const RIO_LATITUDE = -22.9068;
 export const RIO_LONGITUDE = -43.1729;
