@@ -71,6 +71,9 @@
 		devices.map((device) => ({ value: device.id, label: device.name }))
 	);
 
+	const deviceById = (id: string): Device | null =>
+		devices.find((device) => device.id === id) ?? null;
+
 	const mapCenter = $derived<LatLng>(
 		focusedLocation
 			? [focusedLocation.latitude, focusedLocation.longitude]
@@ -274,7 +277,24 @@
 						aria-label={t('dashboard.device')}
 						disabled={devicesLoading || devices.length === 0}
 						class="w-40"
-					/>
+					>
+						{#snippet option(candidate)}
+							{@const active = deviceById(candidate.value)?.is_active ?? false}
+							<span class="flex min-w-0 items-center gap-2">
+								<span
+									class={[
+										'size-2 shrink-0 rounded-full',
+										active ? 'bg-success' : 'bg-base-content/40'
+									]}
+									aria-hidden="true"
+								></span>
+								<span class="truncate">{candidate.label}</span>
+								<span class="sr-only">
+									{active ? t('devices.active') : t('devices.inactive')}
+								</span>
+							</span>
+						{/snippet}
+					</Select>
 				</div>
 			</FloatingPill>
 
