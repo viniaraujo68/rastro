@@ -10,7 +10,16 @@
 
 :root {
 	--ink-primary: color-mix(in oklab, var(--color-primary) 70%, var(--color-base-content));
+	--ink-success: color-mix(in oklab, var(--color-success) 70%, var(--color-base-content));
 	--ink-muted: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+
+:where(.badge-soft, .badge-outline, .badge-ghost):where(.badge-primary) {
+	--badge-ink: var(--ink-primary);
+}
+
+:where(.badge-soft, .badge-outline, .badge-ghost):where(.badge-success) {
+	--badge-ink: var(--ink-success);
 }
 
 @layer base {
