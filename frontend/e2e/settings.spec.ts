@@ -5,8 +5,9 @@ import { capture, mockBackend, signIn, TEST_USER } from './support/index.js';
 
 const SLOW_POLLING_MS = 60_000;
 const SLOW_POLLING_LABEL = '60s';
-const DARK_THEME = 'plinth-dark';
 const THEME_COOKIE = 'theme';
+const LIGHT_BACKGROUND = 'rgb(255, 255, 255)';
+const DARK_BACKGROUND = 'rgb(20, 22, 28)';
 
 const openSettings = async (page: Page) => {
 	await signIn(page);
@@ -22,6 +23,21 @@ const readStoredPolling = (page: Page) =>
 const readThemeCookie = async (page: Page) => {
 	const cookies = await page.context().cookies();
 	return cookies.find((cookie) => cookie.name === THEME_COOKIE)?.value;
+};
+
+const colorScheme = (page: Page) =>
+	page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+
+const bodyBackground = (page: Page) =>
+	page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+const cycleTo = async (page: Page, preference: string) => {
+	const toggle = themeToggle(page);
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		if ((await toggle.getAttribute('data-preference')) === preference) return;
+		await toggle.click();
+	}
+	await expect(toggle).toHaveAttribute('data-preference', preference);
 };
 
 test('the account card shows the whole user id', async ({ page }, info) => {
@@ -68,6 +84,31 @@ test('the theme choice is written to the cookie and applied before the next pain
 	await capture(page, info, 'settings-theme-dark');
 
 	await page.goto('/settings');
-	expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(DARK_THEME);
 	await expect(themeToggle(page)).toHaveAttribute('data-preference', 'dark');
+	expect(await colorScheme(page)).toBe('dark');
+	expect(await bodyBackground(page)).toBe(DARK_BACKGROUND);
+});
+
+test('the theme keeps switching after a reload with a stored preference', async ({ page }) => {
+	await mockBackend(page);
+	await openSettings(page);
+
+	await cycleTo(page, 'dark');
+	await page.reload();
+	await expect(themeToggle(page)).toHaveAttribute('data-preference', 'dark');
+	expect(await colorScheme(page)).toBe('dark');
+	expect(await bodyBackground(page)).toBe(DARK_BACKGROUND);
+
+	await cycleTo(page, 'light');
+	expect(await colorScheme(page)).toBe('light');
+	expect(await bodyBackground(page)).toBe(LIGHT_BACKGROUND);
+
+	await cycleTo(page, 'system');
+	expect(await colorScheme(page)).toBe('light dark');
+
+	await page.emulateMedia({ colorScheme: 'dark' });
+	expect(await bodyBackground(page)).toBe(DARK_BACKGROUND);
+
+	await page.emulateMedia({ colorScheme: 'light' });
+	expect(await bodyBackground(page)).toBe(LIGHT_BACKGROUND);
 });

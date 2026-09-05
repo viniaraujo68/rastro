@@ -33,6 +33,10 @@
 
 	onMount(initAuth);
 
+	onMount(() => {
+		document.documentElement.removeAttribute('data-theme');
+	});
+
 	const isLoginRoute = $derived(page.route.id === '/login');
 	const signedIn = $derived(auth.ready && auth.session !== null);
 
