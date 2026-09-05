@@ -8,6 +8,7 @@
 		type DateRangePreset,
 		type SelectOption
 	} from '@viniaraujo68/plinth/components';
+	import { errorMessage } from '@viniaraujo68/plinth/http';
 	import { toast } from '@viniaraujo68/plinth/toast';
 	import { getDevices, getLatestLocation, getLocations } from '$lib/api.js';
 	import FloatingPill from '$lib/components/dashboard/FloatingPill.svelte';
@@ -40,9 +41,6 @@
 		{ value: 'trail', labelKey: 'dashboard.viewTrail' },
 		{ value: 'heatmap', labelKey: 'dashboard.viewHeatmap' }
 	];
-
-	const describeError = (error: unknown): string =>
-		error instanceof Error ? error.message : String(error);
 
 	let devices = $state<Device[]>([]);
 	let devicesLoading = $state(true);
@@ -130,7 +128,7 @@
 				devices = loaded;
 				if (selectedDeviceId === null && loaded.length > 0) selectedDeviceId = loaded[0].id;
 			})
-			.catch((error: unknown) => toast.error(describeError(error)))
+			.catch((error: unknown) => toast.error(errorMessage(error)))
 			.finally(() => {
 				devicesLoading = false;
 			});
@@ -173,7 +171,7 @@
 			.catch((error: unknown) => {
 				if (cancelled) return;
 				trailLocations = [];
-				toast.error(describeError(error));
+				toast.error(errorMessage(error));
 			})
 			.finally(() => {
 				if (!cancelled) trailLoading = false;
