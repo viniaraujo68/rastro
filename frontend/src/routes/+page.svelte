@@ -198,6 +198,8 @@
 </svelte:head>
 
 <div class="relative h-full w-full overflow-hidden">
+	<h1 class="sr-only">{t('page.map.title')}</h1>
+
 	<MapView center={mapCenter} zoom={mapZoom} animate={animateMap}>
 		{#if viewMode === 'realtime' && latestLocation && selectedDevice}
 			<DeviceMarker location={latestLocation} deviceName={selectedDevice.name} />
