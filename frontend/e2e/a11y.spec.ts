@@ -57,6 +57,13 @@ test('every visible button has an accessible name', async ({ page }) => {
 	}
 });
 
+test('the map exposes itself as a named region', async ({ page }) => {
+	await mockBackend(page);
+	await signIn(page);
+
+	await expect(page.getByRole('region', { name: t('map.region') })).toBeVisible();
+});
+
 test('the shell navigation marks the current page', async ({ page }, info) => {
 	await mockBackend(page);
 	await signIn(page);
