@@ -60,3 +60,22 @@ test('a rejected session sends the visitor back to the login page', async ({ pag
 	await page.waitForURL('/login');
 	await expect(page.getByRole('button', { name: t('login.signIn'), exact: true })).toBeVisible();
 });
+
+test('an unknown address sends an anonymous visitor to the login page', async ({ page }) => {
+	await mockBackend(page);
+
+	await page.goto('/nope');
+
+	await page.waitForURL('/login');
+	await expect(page.getByRole('button', { name: t('login.signIn'), exact: true })).toBeVisible();
+});
+
+test('an unknown address sends a signed-in visitor to the map', async ({ page }) => {
+	await mockBackend(page);
+	await signIn(page);
+
+	await page.goto('/nope/deeper');
+
+	await page.waitForURL('/');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(t('page.map.title'));
+});
