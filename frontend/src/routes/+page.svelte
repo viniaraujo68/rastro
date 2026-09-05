@@ -27,7 +27,7 @@
 	import { format, formatKm } from '$lib/format.js';
 	import { totalDistanceKm } from '$lib/geo.js';
 	import { t, type MessageKey } from '$lib/messages.js';
-	import { readPollingMs } from '$lib/prefs.js';
+	import { POLLING_STORAGE_KEY, readPollingMs } from '$lib/prefs.js';
 	import type { Device, Location, ViewMode } from '$lib/types.js';
 
 	const DAY_MS = 86_400_000;
@@ -61,7 +61,7 @@
 	let animateMap = $state(false);
 	let now = $state(Date.now());
 
-	const pollingMs = readPollingMs();
+	let pollingMs = $state(readPollingMs());
 	let latestRequestId = 0;
 	let trailDeviceId: string | null = null;
 
@@ -163,7 +163,21 @@
 
 	onMount(() => {
 		loadDevices();
+		pollingMs = readPollingMs();
 
+		const onStorage = (event: StorageEvent) => {
+			if (event.key !== null && event.key !== POLLING_STORAGE_KEY) return;
+			pollingMs = readPollingMs();
+		};
+
+		window.addEventListener('storage', onStorage);
+		return () => window.removeEventListener('storage', onStorage);
+	});
+
+	$effect(() => {
+		if (viewMode !== 'realtime') return;
+
+		now = Date.now();
 		const timer = setInterval(() => {
 			now = Date.now();
 		}, RELATIVE_TICK_MS);
