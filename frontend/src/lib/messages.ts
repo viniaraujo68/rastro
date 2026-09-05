@@ -15,6 +15,8 @@ export const messages = {
 	'common.cancel': 'Cancelar',
 	'common.typeToConfirm': 'Digite {value} para confirmar',
 	'common.loading': 'Carregando…',
+	'common.copy': 'Copiar',
+	'common.copied': 'Copiado',
 
 	'toast.region': 'Notificações',
 
@@ -50,6 +52,14 @@ export const messages = {
 	'duration.hoursMinutes': '{hours}h{minutes}min',
 
 	'error.unexpected': 'A aplicação encontrou um problema inesperado.',
+	'error.http': 'A requisição falhou com o status {status}.',
+	'error.status': 'Erro {status}',
+	'error.notFoundTitle': 'Página não encontrada',
+	'error.notFoundBody': 'Não encontramos nada em {pathname}.',
+	'error.notFoundBodyGeneric': 'Não encontramos o endereço que você pediu.',
+	'error.title': 'Algo deu errado',
+	'error.home': 'Voltar ao início',
+	'error.reload': 'Recarregar',
 
 	'page.map.title': 'Mapa',
 	'page.devices.title': 'Dispositivos',
@@ -109,6 +119,10 @@ export const messages = {
 	'dashboard.viewTrail': 'Trajeto',
 	'dashboard.viewHeatmap': 'Heatmap',
 	'dashboard.range': 'Período',
+	'dashboard.rangeCustom': 'Personalizado',
+	'dashboard.rangeFrom': 'De',
+	'dashboard.rangeTo': 'Até',
+	'dashboard.rangeInvalid': 'O início não pode ser depois do fim.',
 	'dashboard.lastUpdate': 'Última atualização',
 	'dashboard.battery': 'Bateria',
 	'dashboard.noDevicesTitle': 'Nenhum dispositivo',

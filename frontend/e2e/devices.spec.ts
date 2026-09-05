@@ -80,7 +80,7 @@ test('creating a device shows its API key once', async ({ page }, info) => {
 
 	await banner.getByRole('button', { name: t('devices.keyReveal') }).click();
 	await expect(banner.getByText(CREATED_DEVICE_API_KEY)).toBeVisible();
-	await expect(banner.getByRole('button', { name: 'Copy' })).toBeVisible();
+	await expect(banner.getByRole('button', { name: t('common.copy') })).toBeVisible();
 	await capture(page, info, 'devices-api-key');
 
 	await banner.getByRole('button', { name: t('devices.keyHide') }).click();

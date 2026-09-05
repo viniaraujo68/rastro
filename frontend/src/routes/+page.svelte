@@ -291,6 +291,10 @@
 				presets={RANGE_PRESETS}
 				reAnchorMs={RANGE_RE_ANCHOR_MS}
 				label={t('dashboard.range')}
+				customLabel={t('dashboard.rangeCustom')}
+				fromLabel={t('dashboard.rangeFrom')}
+				toLabel={t('dashboard.rangeTo')}
+				invalidRangeLabel={t('dashboard.rangeInvalid')}
 				onchange={(next) => (range = next)}
 			/>
 		</FloatingPill>
