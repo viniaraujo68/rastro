@@ -8,7 +8,7 @@
 		type DateRangePreset,
 		type SelectOption
 	} from '@viniaraujo68/plinth/components';
-	import { errorMessage } from '@viniaraujo68/plinth/http';
+	import { errorMessage, errorStatus } from '@viniaraujo68/plinth/http';
 	import { toast } from '@viniaraujo68/plinth/toast';
 	import { getDevices, getLatestLocation, getLocations } from '$lib/api.js';
 	import FloatingPill from '$lib/components/dashboard/FloatingPill.svelte';
@@ -34,6 +34,7 @@
 		{ id: '24h', label: '24h', durationMs: DAY_MS }
 	];
 	const RANGE_RE_ANCHOR_MS = 60_000;
+	const NOT_FOUND = 404;
 	const RELATIVE_TICK_MS = 5_000;
 
 	const VIEW_MODES: readonly { value: ViewMode; labelKey: MessageKey }[] = [
@@ -49,8 +50,10 @@
 	let range = $state<DateRange>(buildRange(RANGE_PRESETS[0]));
 	let latestLocation = $state<Location | null>(null);
 	let latestLoading = $state(false);
+	let latestFailed = $state(false);
 	let trailLocations = $state<Location[]>([]);
 	let trailLoading = $state(false);
+	let trailFailed = $state(false);
 	let focusedLocation = $state<Location | null>(null);
 	let stableCenter = $state<LatLng | null>(null);
 	let animateMap = $state(false);
@@ -58,6 +61,7 @@
 
 	const pollingMs = readPollingMs();
 	let latestRequestId = 0;
+	let trailDeviceId: string | null = null;
 
 	const selectedDevice = $derived(devices.find((device) => device.id === selectedDeviceId) ?? null);
 
@@ -81,9 +85,12 @@
 		viewMode === 'realtime' &&
 			selectedDeviceId !== null &&
 			!latestLoading &&
+			!latestFailed &&
 			latestLocation === null &&
 			devices.length > 0
 	);
+
+	const showUpdateFailed = $derived(viewMode === 'realtime' ? latestFailed : trailFailed);
 
 	const fetchLatest = (deviceId: string) => {
 		const requestId = (latestRequestId += 1);
@@ -92,10 +99,16 @@
 			.then((response) => {
 				if (requestId !== latestRequestId) return;
 				latestLocation = response.location;
+				latestFailed = false;
 			})
-			.catch(() => {
+			.catch((error: unknown) => {
 				if (requestId !== latestRequestId) return;
-				latestLocation = null;
+				if (errorStatus(error) === NOT_FOUND) {
+					latestLocation = null;
+					latestFailed = false;
+					return;
+				}
+				latestFailed = true;
 			})
 			.finally(() => {
 				if (requestId === latestRequestId) latestLoading = false;
@@ -152,6 +165,7 @@
 
 		const intervalMs = pollingMs;
 		latestLocation = null;
+		latestFailed = false;
 		fetchLatest(deviceId);
 		const timer = setInterval(() => fetchLatest(deviceId), intervalMs);
 
@@ -165,6 +179,12 @@
 		const deviceId = viewMode === 'realtime' ? null : selectedDeviceId;
 		if (deviceId === null) return;
 
+		if (deviceId !== trailDeviceId) {
+			trailDeviceId = deviceId;
+			trailLocations = [];
+			trailFailed = false;
+		}
+
 		const { from, to } = range;
 		let cancelled = false;
 		trailLoading = true;
@@ -173,10 +193,11 @@
 			.then((response) => {
 				if (cancelled) return;
 				trailLocations = response.locations ?? [];
+				trailFailed = false;
 			})
 			.catch((error: unknown) => {
 				if (cancelled) return;
-				trailLocations = [];
+				trailFailed = true;
 				toast.error(errorMessage(error));
 			})
 			.finally(() => {
@@ -287,7 +308,18 @@
 		</MapOverlayCard>
 	{/if}
 
-	<div class="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-3">
+	<div
+		class="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex flex-wrap items-center justify-center gap-2 px-3"
+	>
+		{#if showUpdateFailed}
+			<FloatingPill class="gap-2 border-error/40 px-3.5 py-1.5">
+				<Icon name="alert" class="size-3.5 text-error" />
+				<span role="status" class="text-xs font-medium text-error">
+					{t('dashboard.updateFailed')}
+				</span>
+			</FloatingPill>
+		{/if}
+
 		{#if viewMode === 'realtime' && latestLocation}
 			<FloatingPill class="gap-2 px-3.5 py-1.5">
 				<span class="pulse-dot" aria-hidden="true">

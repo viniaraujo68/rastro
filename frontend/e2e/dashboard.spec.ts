@@ -199,3 +199,37 @@ test('a poll leaves the panned camera where the user left it', async ({ page }) 
 	expect(Math.abs(after.y - panned.y)).toBeLessThan(PAN_TOLERANCE);
 	expect(before.x - after.x).toBeGreaterThan(MIN_PAN_PIXELS);
 });
+
+test('a failed poll keeps the last position and reports the failure', async ({ page }) => {
+	await usePolling(page, FAST_POLLING_MS);
+	const fixtures = buildFixtures();
+	await mockBackend(page, fixtures);
+
+	let answered = 0;
+	await page.route('**/api/v1/locations/latest*', async (route) => {
+		answered += 1;
+		if (answered > 1) {
+			await route.fulfill({
+				status: 500,
+				contentType: 'application/json',
+				body: JSON.stringify({ error: 'latest location unavailable' })
+			});
+			return;
+		}
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				device: { id: OWNED_DEVICE_ID, name: fixtures.devices[0].name },
+				location: fixtures.latest[OWNED_DEVICE_ID]
+			})
+		});
+	});
+
+	await signIn(page);
+	await expect(page.locator('.device-marker')).toBeVisible();
+
+	await expect(page.getByText(t('dashboard.updateFailed'))).toBeVisible();
+	await expect(page.locator('.device-marker')).toBeVisible();
+	await expect(page.getByText(t('dashboard.waitingTitle'))).toHaveCount(0);
+});
