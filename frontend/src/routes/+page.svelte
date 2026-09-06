@@ -67,6 +67,10 @@
 
 	const selectedDevice = $derived(devices.find((device) => device.id === selectedDeviceId) ?? null);
 
+	const deviceLabels = $derived(
+		devices.length === 0 ? [t('dashboard.devicePlaceholder')] : devices.map((device) => device.name)
+	);
+
 	const deviceOptions = $derived<SelectOption[]>(
 		devices.map((device) => ({ value: device.id, label: device.name }))
 	);
@@ -282,7 +286,12 @@
 						? t('dashboard.deviceStatusActive')
 						: t('dashboard.deviceStatusInactive')}
 				></span>
-				<div class="device-picker flex">
+				<div class="device-picker grid max-w-56">
+					{#each deviceLabels as label (label)}
+						<span class="select invisible col-start-1 row-start-1 whitespace-nowrap" aria-hidden="true">
+							{label}
+						</span>
+					{/each}
 					<Select
 						options={deviceOptions}
 						value={selectedDeviceId}
@@ -290,7 +299,7 @@
 						placeholder={t('dashboard.devicePlaceholder')}
 						aria-label={t('dashboard.device')}
 						disabled={devicesLoading || devices.length === 0}
-						class="max-w-56"
+						class="col-start-1 row-start-1 w-full"
 					>
 						{#snippet option(candidate)}
 							{@const active = deviceById(candidate.value)?.is_active ?? false}
@@ -422,7 +431,6 @@
 
 <style>
 	.device-picker :global(.select) {
-		width: auto;
 		height: 2rem;
 		min-height: 2rem;
 		border: none;
