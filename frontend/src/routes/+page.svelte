@@ -329,17 +329,19 @@
 			</FloatingPanel>
 		</div>
 
-		<FloatingPanel class={['max-w-full px-3 py-2', viewMode === 'realtime' && 'hidden']}>
-			<DateRangePicker
-				presets={RANGE_PRESETS}
-				reAnchorMs={RANGE_RE_ANCHOR_MS}
-				label={t('dashboard.range')}
-				customLabel={t('dashboard.rangeCustom')}
-				fromLabel={t('dashboard.rangeFrom')}
-				toLabel={t('dashboard.rangeTo')}
-				invalidRangeLabel={t('dashboard.rangeInvalid')}
-				onchange={(next) => (range = next)}
-			/>
+		<FloatingPanel class={['max-w-full p-1', viewMode === 'realtime' && 'hidden']}>
+			<div class="range-picker">
+				<DateRangePicker
+					presets={RANGE_PRESETS}
+					reAnchorMs={RANGE_RE_ANCHOR_MS}
+					label={t('dashboard.range')}
+					customLabel={t('dashboard.rangeCustom')}
+					fromLabel={t('dashboard.rangeFrom')}
+					toLabel={t('dashboard.rangeTo')}
+					invalidRangeLabel={t('dashboard.rangeInvalid')}
+					onchange={(next) => (range = next)}
+				/>
+			</div>
 		</FloatingPanel>
 	</div>
 
@@ -420,6 +422,7 @@
 
 <style>
 	.device-picker :global(.select) {
+		height: 2rem;
 		min-height: 2rem;
 		border: none;
 		background-color: transparent;
@@ -427,6 +430,21 @@
 		padding-inline: 0.25rem;
 		font-size: 0.8125rem;
 		font-weight: 600;
+	}
+
+	.range-picker :global(.btn),
+	.range-picker :global(.input) {
+		height: 2rem;
+		min-height: 2rem;
+		font-size: 0.8125rem;
+	}
+
+	.range-picker :global(.btn) {
+		padding-inline: 0.75rem;
+	}
+
+	.range-picker :global(.input) {
+		width: 11.5rem;
 	}
 
 	.pulse-dot {
