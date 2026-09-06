@@ -433,6 +433,12 @@
 		font-weight: 600;
 	}
 
+	.device-picker :global(.plinth-select-panel) {
+		width: max-content;
+		min-width: anchor-size(width);
+		max-width: 18rem;
+	}
+
 	.range-picker :global(.btn),
 	.range-picker :global(.input) {
 		height: 2rem;

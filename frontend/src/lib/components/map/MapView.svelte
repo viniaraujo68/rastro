@@ -63,6 +63,7 @@
 			handle.styleEpoch += 1;
 		});
 		map.on('load', () => {
+			collapseAttribution(map.getContainer());
 			handle.map = map;
 		});
 
@@ -74,6 +75,13 @@
 			map.remove();
 		};
 	});
+
+	const collapseAttribution = (root: HTMLElement) => {
+		const attribution = root.querySelector('.maplibregl-ctrl-attrib');
+		if (!attribution) return;
+		attribution.classList.remove('maplibregl-compact-show');
+		attribution.setAttribute('open', '');
+	};
 
 	$effect(() => {
 		const nextStyleUrl = styleUrlFor(theme.dark);
