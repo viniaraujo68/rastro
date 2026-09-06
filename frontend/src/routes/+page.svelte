@@ -442,7 +442,7 @@
 	}
 
 	.device-picker :global(.plinth-select-panel) {
-		width: max-content;
+		width: max-content !important;
 		min-width: anchor-size(width);
 		max-width: 18rem;
 	}
