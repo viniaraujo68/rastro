@@ -12,7 +12,7 @@
 	import { errorMessage, errorStatus } from '@viniaraujo68/plinth/http';
 	import { toast } from '@viniaraujo68/plinth/toast';
 	import { getDevices, getLatestLocation, getLocations } from '$lib/api.js';
-	import FloatingPill from '$lib/components/dashboard/FloatingPill.svelte';
+	import FloatingPanel from '$lib/components/dashboard/FloatingPanel.svelte';
 	import MapOverlayCard from '$lib/components/dashboard/MapOverlayCard.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import DeviceMarker from '$lib/components/map/DeviceMarker.svelte';
@@ -271,7 +271,7 @@
 
 	<div class="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-col items-start gap-2">
 		<div class="flex w-full flex-wrap items-start justify-between gap-2">
-			<FloatingPill class="gap-2 py-1 ps-3 pe-1">
+			<FloatingPanel class="gap-2 py-1 ps-3 pe-1">
 				<span
 					class={[
 						'size-2 shrink-0 rounded-full',
@@ -310,9 +310,9 @@
 						{/snippet}
 					</Select>
 				</div>
-			</FloatingPill>
+			</FloatingPanel>
 
-			<FloatingPill class="p-1">
+			<FloatingPanel class="p-1">
 				<div class="join" role="group" aria-label={t('dashboard.viewMode')}>
 					{#each VIEW_MODES as mode (mode.value)}
 						<button
@@ -326,10 +326,10 @@
 						</button>
 					{/each}
 				</div>
-			</FloatingPill>
+			</FloatingPanel>
 		</div>
 
-		<FloatingPill panel class={['max-w-full px-3 py-2', viewMode === 'realtime' && 'hidden']}>
+		<FloatingPanel class={['max-w-full px-3 py-2', viewMode === 'realtime' && 'hidden']}>
 			<DateRangePicker
 				presets={RANGE_PRESETS}
 				reAnchorMs={RANGE_RE_ANCHOR_MS}
@@ -340,7 +340,7 @@
 				invalidRangeLabel={t('dashboard.rangeInvalid')}
 				onchange={(next) => (range = next)}
 			/>
-		</FloatingPill>
+		</FloatingPanel>
 	</div>
 
 	{#if devicesFailed}
@@ -369,16 +369,16 @@
 		class="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex flex-wrap items-center justify-center gap-2 px-3"
 	>
 		{#if showUpdateFailed}
-			<FloatingPill class="gap-2 border-error/40 px-3.5 py-1.5">
+			<FloatingPanel class="gap-2 border-error/40 px-3.5 py-1.5">
 				<Icon name="alert" class="size-3.5 text-error" />
 				<span role="status" class="text-xs font-medium text-error">
 					{t('dashboard.updateFailed')}
 				</span>
-			</FloatingPill>
+			</FloatingPanel>
 		{/if}
 
 		{#if viewMode === 'realtime' && latestLocation}
-			<FloatingPill class="gap-2 px-3.5 py-1.5">
+			<FloatingPanel class="gap-2 px-3.5 py-1.5">
 				<span class="pulse-dot" aria-hidden="true">
 					<span class="pulse-dot-ring"></span>
 					<span class="pulse-dot-core"></span>
@@ -393,17 +393,17 @@
 						{latestLocation.battery_level}%
 					</span>
 				{/if}
-			</FloatingPill>
+			</FloatingPanel>
 		{:else if viewMode === 'trail' && !trailLoading}
-			<FloatingPill class="px-3.5 py-1.5">
+			<FloatingPanel class="px-3.5 py-1.5">
 				<span class="text-xs font-medium text-base-content/70">
 					{trailLocations.length > 0
 						? t('dashboard.trailDistance', { distance: formatKm(trailDistanceKm) })
 						: t('dashboard.rangeEmpty')}
 				</span>
-			</FloatingPill>
+			</FloatingPanel>
 		{:else if viewMode === 'heatmap' && !trailLoading}
-			<FloatingPill class="px-3.5 py-1.5">
+			<FloatingPanel class="px-3.5 py-1.5">
 				<span class="text-xs font-medium text-base-content/70">
 					{#if trailLocations.length === 0}
 						{t('dashboard.rangeEmpty')}
@@ -413,7 +413,7 @@
 						{t('dashboard.heatmapPoints', { count: trailLocations.length })}
 					{/if}
 				</span>
-			</FloatingPill>
+			</FloatingPanel>
 		{/if}
 	</div>
 </div>
