@@ -290,7 +290,7 @@
 						placeholder={t('dashboard.devicePlaceholder')}
 						aria-label={t('dashboard.device')}
 						disabled={devicesLoading || devices.length === 0}
-						class="w-40"
+						class="max-w-56"
 					>
 						{#snippet option(candidate)}
 							{@const active = deviceById(candidate.value)?.is_active ?? false}
@@ -422,12 +422,13 @@
 
 <style>
 	.device-picker :global(.select) {
+		width: auto;
 		height: 2rem;
 		min-height: 2rem;
 		border: none;
 		background-color: transparent;
 		box-shadow: none;
-		padding-inline: 0.25rem;
+		padding-inline: 0.25rem 1.75rem;
 		font-size: 0.8125rem;
 		font-weight: 600;
 	}
