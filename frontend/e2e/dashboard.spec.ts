@@ -354,3 +354,35 @@ test('a polling change made elsewhere restarts the poll', async ({ page }) => {
 	await page.waitForResponse((response) => response.url().includes('/api/v1/locations/latest'));
 	await expect(page.locator('.device-marker')).toBeVisible();
 });
+
+const withoutAnchorPositioning = (page: Page) =>
+	page.addInitScript(() => {
+		const native = CSS.supports.bind(CSS);
+		CSS.supports = (...args: [string, string?]) =>
+			/anchor-name|position-area/.test(args.join(' ')) ? false : native(...(args as [string]));
+	});
+
+test('the device list still opens under its control without anchor positioning', async ({
+	page
+}) => {
+	await withoutAnchorPositioning(page);
+	await mockBackend(page, buildFixtures());
+	await signIn(page);
+	await page.addStyleTag({
+		content:
+			'[popover]{position-anchor:none!important;position-area:none!important;position-try:none!important}'
+	});
+
+	const trigger = page.getByRole('combobox', { name: t('dashboard.device') });
+	await trigger.click();
+	const panel = page.getByRole('listbox');
+	await expect(panel).toBeVisible();
+
+	const triggerBox = (await trigger.boundingBox())!;
+	const panelBox = (await panel.boundingBox())!;
+	expect(panelBox.y).toBeGreaterThanOrEqual(triggerBox.y + triggerBox.height);
+	expect(panelBox.y).toBeLessThan(triggerBox.y + triggerBox.height + 16);
+	expect(panelBox.x).toBeLessThan(triggerBox.x + triggerBox.width);
+	expect(panelBox.x + panelBox.width).toBeGreaterThan(triggerBox.x);
+	await expect(panel.getByRole('option').first()).toBeVisible();
+});
