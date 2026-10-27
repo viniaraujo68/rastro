@@ -10,24 +10,33 @@ Plataforma pessoal de rastreamento de localização em tempo real. O iPhone envi
 | Frontend | SvelteKit + Svelte 5 + TypeScript (plinth design system) |
 | Mapas | MapLibre GL |
 | Banco | Supabase (PostgreSQL + Auth + RLS) |
-| Proxy / HTTPS | Cloudflare (nuvem laranja ativa) |
+| Proxy / HTTPS | Cloudflare Tunnel + edge Caddy compartilhado |
 
 ---
 
 ## Arquitetura de deploy
 
 ```
-Usuário → Cloudflare (HTTPS + CDN + DDoS) → VPS → proxy de borda compartilhado (rede `web`) → nginx do frontend → /api/* → backend:8080
+Usuário ─HTTPS→ Cloudflare ─túnel→ cloudflared → proxy de borda compartilhado (rede `web`) → nginx do frontend → /api/* → backend:8080
 ```
 
-O HTTPS é gerenciado inteiramente pelo Cloudflare (proxy ativo, ícone de nuvem laranja). Os containers do Rastro não publicam portas no host: o proxy de borda compartilhado (rede Docker externa `web`) é quem recebe o tráfego e encaminha para o container `rastro-frontend`. No painel do Cloudflare, configure **SSL/TLS → Overview** como **Flexible** (Cloudflare↔servidor via HTTP) ou **Full** (se quiser TLS no trecho interno também).
+O HTTPS termina no Cloudflare, que entrega o tráfego por um **Cloudflare Tunnel**: a VPS não publica porta HTTP nenhuma. O proxy de borda (Caddy) é infra da máquina e mora no repo do [Peladex](https://github.com/viniaraujo68/peladex) (`deploy/edge/`); este repo publica só o seu pedaço, `deploy/rastro.caddy`, que o edge importa:
+
+```bash
+cp deploy/rastro.caddy ~/edge/sites/
+echo 'RASTRO_DOMAIN=seu-dominio.com' >> ~/edge/.env
+cd ~/edge && docker compose up -d
+docker compose exec edge caddy reload --config /etc/caddy/Caddyfile
+```
+
+No painel do túnel (Zero Trust → Networks → Tunnels → **Public Hostname**), adicione o domínio com serviço **HTTP** → `edge:80`. O IP real do visitante chega ao nginx como `X-Forwarded-For` (lido pelo edge de `Cf-Connecting-IP`).
 
 ---
 
 ## Pré-requisitos
 
 - [Supabase](https://supabase.com) — projeto criado (gratuito)
-- [Cloudflare](https://cloudflare.com) — domínio apontando pro Cloudflare com proxy ativo (nuvem laranja)
+- [Cloudflare](https://cloudflare.com) — domínio no Cloudflare e um Cloudflare Tunnel (Zero Trust, gratuito)
 - Docker + Docker Compose (para deploy)
 - Node.js 22+ (para desenvolvimento local do frontend)
 - Go 1.24+ (para desenvolvimento local do backend)
@@ -160,7 +169,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 docker compose up -d --build
 ```
 
-- Frontend: `http://SEU_DOMINIO` — o Cloudflare termina o HTTPS e o proxy de borda compartilhado encaminha para o container `rastro-frontend` (nenhuma porta é publicada no host)
+- Frontend: `https://SEU_DOMINIO` — o Cloudflare termina o HTTPS e entrega pelo túnel ao proxy de borda compartilhado, que encaminha para o container `rastro-frontend` (nenhuma porta é publicada no host)
 - Backend: acessível apenas internamente via `http://backend:8080` (sem porta exposta ao host)
 
 Para ver os logs:
