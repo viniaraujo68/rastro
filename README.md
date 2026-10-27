@@ -20,16 +20,7 @@ Plataforma pessoal de rastreamento de localização em tempo real. O iPhone envi
 Usuário ─HTTPS→ Cloudflare ─túnel→ cloudflared → proxy de borda compartilhado (rede `web`) → nginx do frontend → /api/* → backend:8080
 ```
 
-O HTTPS termina no Cloudflare, que entrega o tráfego por um **Cloudflare Tunnel**: a VPS não publica porta HTTP nenhuma. O proxy de borda (Caddy) é infra da máquina e mora no repo do [Peladex](https://github.com/viniaraujo68/peladex) (`deploy/edge/`); este repo publica só o seu pedaço, `deploy/rastro.caddy`, que o edge importa:
-
-```bash
-cp deploy/rastro.caddy ~/edge/sites/
-echo 'RASTRO_DOMAIN=seu-dominio.com' >> ~/edge/.env
-cd ~/edge && docker compose up -d
-docker compose exec edge caddy reload --config /etc/caddy/Caddyfile
-```
-
-No painel do túnel (Zero Trust → Networks → Tunnels → **Public Hostname**), adicione o domínio com serviço **HTTP** → `edge:80`. O IP real do visitante chega ao nginx como `X-Forwarded-For` (lido pelo edge de `Cf-Connecting-IP`).
+O HTTPS termina no Cloudflare, que entrega o tráfego por um **Cloudflare Tunnel**: a VPS não publica porta HTTP nenhuma. O proxy de borda (Caddy atrás do túnel) é infra da máquina e mora em [viniaraujo68/edge](https://github.com/viniaraujo68/edge): o bloco do Rastro é o `sites/rastro.caddy` de lá, e o README dele cobre Cloudflare, firewall e como acrescentar uma app. O IP real do visitante chega ao nginx como `X-Forwarded-For` (lido pelo edge de `Cf-Connecting-IP`).
 
 ---
 
